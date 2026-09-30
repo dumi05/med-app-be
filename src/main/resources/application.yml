@@ -1,0 +1,25 @@
+spring:
+  application:
+    name: med-app-be
+
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/studiomedico-dc}
+    username: ${DB_USERNAME:studiomedico}
+    password: ${DB_PASSWORD:studiomedico}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+server:
+  port: ${SERVER_PORT:8080}
+
+jwt:
+  secret: ${JWT_SECRET:change-this-secret-in-production-min-32-chars}
+  expiration-ms: ${JWT_EXPIRATION_MS:86400000}
+
+app:
+  admin-psw: ${ADMIN_PSW:admin123}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
