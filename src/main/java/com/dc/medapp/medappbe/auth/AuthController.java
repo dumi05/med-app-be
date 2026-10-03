@@ -5,6 +5,7 @@ import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,17 +17,17 @@ public class AuthController {
     private final AuthService authService;
 
     @PostMapping("/register")
-    public AuthResponse register(@Valid @RequestBody RegisterRequest request) {
-        return authService.register(request);
+    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+        return ResponseEntity.ok(authService.register(request));
     }
 
     @PostMapping("/login")
-    public AuthResponse login(@Valid @RequestBody LoginRequest request) {
-        return authService.login(request);
+    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
+        return ResponseEntity.ok(authService.login(request));
     }
 
     @GetMapping("/me")
-    public AuthResponse me(@AuthenticationPrincipal User user) {
-        return new AuthResponse(null, user.getEmail(), user.getRole());
+    public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal User user) {
+        return ResponseEntity.ok(new AuthResponse(null, user.getEmail(), user.getRole()));
     }
 }
