@@ -7,7 +7,6 @@ import lombok.*;
 
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "paziente")
@@ -16,7 +15,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Paziente extends BaseEntity {
+public class PazienteEntity extends BaseEntity {
     @OneToOne(optional = false)
     @JoinColumn(name = "user_id")
     private User user;

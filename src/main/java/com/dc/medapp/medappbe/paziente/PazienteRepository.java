@@ -6,6 +6,6 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 @Repository
-public interface PazienteRepository extends JpaRepository<Paziente, Long> {
-    Optional<Paziente> findByUserId(Long userId);
+public interface PazienteRepository extends JpaRepository<PazienteEntity, Long> {
+    Optional<PazienteEntity> findByUserId(Long userId);
 }

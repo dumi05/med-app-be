@@ -3,7 +3,7 @@ package com.dc.medapp.medappbe.auth;
 import com.dc.medapp.medappbe.auth.dto.AuthResponse;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
-import com.dc.medapp.medappbe.paziente.Paziente;
+import com.dc.medapp.medappbe.paziente.PazienteEntity;
 import com.dc.medapp.medappbe.paziente.PazienteRepository;
 import com.dc.medapp.medappbe.security.JwtService;
 import lombok.RequiredArgsConstructor;
@@ -40,7 +40,7 @@ public class AuthService {
                 .build();
 
         userRepository.save(user);
-        var paziente = Paziente.builder()
+        var paziente = PazienteEntity.builder()
                 .user(user)
                 .nome(request.nome())
                 .cognome(request.cognome())
