@@ -1,4 +1,4 @@
-package com.dc.medapp.medappbe.medico;
+package com.dc.medapp.medappbe.doctor;
 
 import com.dc.medapp.medappbe.common.BaseEntity;
 import jakarta.persistence.Column;
@@ -7,13 +7,13 @@ import jakarta.persistence.Table;
 import lombok.*;
 
 @Entity
-@Table(name = "specializzazione")
+@Table(name = "specialization")
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class SpecializzazioneEntity extends BaseEntity {
+public class SpecializationEntity extends BaseEntity {
     @Column(nullable = false, unique = true)
-    private String nome;
+    private String name;
 }

@@ -19,18 +19,18 @@ public class UserRepositoryTest {
     @Test
     public void testFindByEmail() {
         // Given
-        User user = new User();
+        UserEntity user = new UserEntity();
         user.setEmail("test@example.com");
         user.setPasswordHash("testpassword");
-        user.setRole(Role.PAZIENTE);
+        user.setRole(Role.PATIENT);
         userRepository.save(user);
 
         // When
-        Optional<User> foundUser = userRepository.findByEmail("test@example.com");
+        Optional<UserEntity> foundUser = userRepository.findByEmail("test@example.com");
 
         // Then
         assertThat(foundUser).isPresent();
-        assertThat(foundUser.get().getRole()).isEqualTo(Role.PAZIENTE);
+        assertThat(foundUser.get().getRole()).isEqualTo(Role.PATIENT);
     }
 
     @Test

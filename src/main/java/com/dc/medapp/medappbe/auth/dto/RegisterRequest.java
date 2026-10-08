@@ -9,9 +9,9 @@ import java.time.LocalDate;
 
 public record RegisterRequest(@NotBlank @Email String email,
                               @NotBlank @Size(min = 8) String password,
-                              @NotBlank String nome,
-                              @NotBlank String cognome,
-                              @NotNull LocalDate dataNascita,
-                              boolean consensoGdpr,
-                              @NotBlank String consensoGdprVersion) {
+                              @NotBlank String firstName,
+                              @NotBlank String lastName,
+                              @NotNull LocalDate birthDate,
+                              boolean gdprConsent,
+                              @NotBlank String gdprConsentVersion) {
 }

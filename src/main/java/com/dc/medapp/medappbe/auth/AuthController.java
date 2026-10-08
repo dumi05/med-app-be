@@ -27,7 +27,7 @@ public class AuthController {
     }
 
     @GetMapping("/me")
-    public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal User user) {
+    public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal UserEntity user) {
         return ResponseEntity.ok(new AuthResponse(null, user.getEmail(), user.getRole()));
     }
 }

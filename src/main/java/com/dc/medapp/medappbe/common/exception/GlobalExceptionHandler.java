@@ -12,32 +12,32 @@ import java.time.Instant;
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(TransizioneStatoNonValidaException.class)
-    public ResponseEntity<ErrorResponse> handleTransizioneStatoNonValidaException(TransizioneStatoNonValidaException ex) {
-        return build(HttpStatus.CONFLICT, "TRANSIZIONE_NON_VALIDA", ex.getMessage());
+    @ExceptionHandler(InvalidStateTransitionException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidStateTransitionException(InvalidStateTransitionException ex) {
+        return build(HttpStatus.CONFLICT, "INVALID_STATE_TRANSITION", ex.getMessage());
     }
 
-    @ExceptionHandler(RisorsaNonTrovataException.class)
-    public ResponseEntity<ErrorResponse> handleRisorsaNonTrovataException(RisorsaNonTrovataException ex) {
-        return build(HttpStatus.NOT_FOUND, "RISORSA_NON_TROVATA", ex.getMessage());
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, "RESOURCE_NOT_FOUND", ex.getMessage());
     }
 
-    @ExceptionHandler(SlotNonDisponibileException.class)
-    public ResponseEntity<ErrorResponse> handleSlotNonDisponibileException(SlotNonDisponibileException ex) {
-        return build(HttpStatus.CONFLICT, "SLOT_NON_DISPONIBILE", ex.getMessage());
+    @ExceptionHandler(SlotNotAvailableException.class)
+    public ResponseEntity<ErrorResponse> handleSlotNotAvailableException(SlotNotAvailableException ex) {
+        return build(HttpStatus.CONFLICT, "SLOT_NOT_AVAILABLE", ex.getMessage());
     }
 
-    @ExceptionHandler(AccessoNonAutorizzatoException.class)
-    public ResponseEntity<ErrorResponse> handleAccessoNonAutorizzatoException(AccessoNonAutorizzatoException ex) {
-        return build(HttpStatus.FORBIDDEN, "ACCESSO_NON_AUTORIZZATO", ex.getMessage());
+    @ExceptionHandler(UnauthorizedAccessException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedAccessException(UnauthorizedAccessException ex) {
+        return build(HttpStatus.FORBIDDEN, "UNAUTHORIZED_ACCESS", ex.getMessage());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<ErrorResponse> handleIllegalArgumentException(IllegalArgumentException ex) {
-        return build(HttpStatus.BAD_REQUEST, "ARGOMENTO_NON_VALIDO", ex.getMessage());
+        return build(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", ex.getMessage());
     }
 
-    private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String codice, String messaggio) {
-        return ResponseEntity.status(httpStatus).body(new ErrorResponse(codice, messaggio, Instant.now()));
+    private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
+        return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }
 }

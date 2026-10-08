@@ -2,5 +2,5 @@ package com.dc.medapp.medappbe.common;
 
 import java.time.Instant;
 
-public record ErrorResponse(String codice, String messaggio, Instant timestamp) {
+public record ErrorResponse(String code, String message, Instant timestamp) {
 }

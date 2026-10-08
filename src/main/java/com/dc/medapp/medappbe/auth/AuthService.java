@@ -3,8 +3,8 @@ package com.dc.medapp.medappbe.auth;
 import com.dc.medapp.medappbe.auth.dto.AuthResponse;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
-import com.dc.medapp.medappbe.paziente.PazienteEntity;
-import com.dc.medapp.medappbe.paziente.PazienteRepository;
+import com.dc.medapp.medappbe.patient.PatientEntity;
+import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.security.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -18,14 +18,14 @@ import java.time.Instant;
 public class AuthService {
 
     private final UserRepository userRepository;
-    private final PazienteRepository pazienteRepository;
+    private final PatientRepository patientRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
 
     @Transactional
     public AuthResponse register (RegisterRequest request) {
 
-        if(!request.consensoGdpr()) {
+        if(!request.gdprConsent()) {
             throw new IllegalArgumentException("Il consenso GDPR è obbligatorio per la registrazione.");
         }
 
@@ -33,32 +33,32 @@ public class AuthService {
             throw new IllegalArgumentException("L'email è già in uso.");
         }
 
-        var user = User.builder()
+        var user = UserEntity.builder()
                 .email(request.email())
                 .passwordHash(passwordEncoder.encode(request.password()))
-                .role(Role.PAZIENTE)
+                .role(Role.PATIENT)
                 .build();
 
         userRepository.save(user);
-        var paziente = PazienteEntity.builder()
+        var patient = PatientEntity.builder()
                 .user(user)
-                .nome(request.nome())
-                .cognome(request.cognome())
-                .dataNascita(request.dataNascita())
-                .consensoGdpr(true)
-                .consensoGdprVersion(request.consensoGdprVersion())
-                .consensoGdprTimestamp(Instant.now())
-                .anonimizzato(false)
+                .firstName(request.firstName())
+                .lastName(request.lastName())
+                .birthDate(request.birthDate())
+                .gdprConsent(true)
+                .gdprConsentVersion(request.gdprConsentVersion())
+                .gdprConsentTimestamp(Instant.now())
+                .anonymized(false)
                 .build();
 
-        pazienteRepository.save(paziente);
+        patientRepository.save(patient);
 
         String token = jwtService.generateToken(user);
         return new AuthResponse(token, user.getEmail(), user.getRole());
     }
 
     public AuthResponse login (LoginRequest request) {
-        User user = userRepository.findByEmail(request.email())
+        UserEntity user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new IllegalArgumentException("Utente non registrato con la mail: " + request.email()));
 
         if(!passwordEncoder.matches(request.password(), user.getPasswordHash())) {

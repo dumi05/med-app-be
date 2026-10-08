@@ -3,7 +3,7 @@ spring:
     name: med-app-be
 
   datasource:
-    url: ${DB_URL:jdbc:postgresql://localhost:5432/studiomedico-dc}
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/studiomedico-dc}
     username: ${DB_USERNAME:studiomedico}
     password: ${DB_PASSWORD:studiomedico}
   jpa:

@@ -1,10 +1,10 @@
 package com.dc.medapp.medappbe.config;
 
 import com.dc.medapp.medappbe.auth.Role;
-import com.dc.medapp.medappbe.auth.User;
+import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
-import com.dc.medapp.medappbe.medico.SpecializzazioneEntity;
-import com.dc.medapp.medappbe.medico.SpecializzazioneRepository;
+import com.dc.medapp.medappbe.doctor.SpecializationEntity;
+import com.dc.medapp.medappbe.doctor.SpecializationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
@@ -17,7 +17,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DataSeeder implements CommandLineRunner {
 
-    private final SpecializzazioneRepository specializzazioneRepository;
+    private final SpecializationRepository specializationRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     @Value("${app.admin-psw}")
@@ -25,12 +25,12 @@ public class DataSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) throws Exception {
-        if(specializzazioneRepository.count() == 0) {
+        if(specializationRepository.count() == 0) {
             List.of("Cardiologia", "Dermatologia", "Medicina Generale", "Ortopedia")
-                    .forEach(nome -> specializzazioneRepository.save(SpecializzazioneEntity.builder().nome(nome).build()));
+                    .forEach(name -> specializationRepository.save(SpecializationEntity.builder().name(name).build()));
         }
         if(userRepository.findByEmail("admin@studio-medico.it").isEmpty()) {
-            userRepository.save(User.builder()
+            userRepository.save(UserEntity.builder()
                     .email("admin@studio-medico.it")
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .role(Role.ADMIN)

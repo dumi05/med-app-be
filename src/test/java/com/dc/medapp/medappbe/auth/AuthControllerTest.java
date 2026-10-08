@@ -55,7 +55,7 @@ public class AuthControllerTest {
     }
 
     @Test
-    public void register_returnBadRequest_senzaConsensoGdpr() throws Exception {
+    public void register_returnBadRequest_withoutGdprConsent() throws Exception {
         RegisterRequest req = new RegisterRequest("mario.rossi@test.com","password123", "Mario", "Rossi" , LocalDate.of(1990, 1, 1), false, "v1.0");
 
         mockMvc.perform(post("/api/v1/auth/register")

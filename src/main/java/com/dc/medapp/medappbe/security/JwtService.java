@@ -1,6 +1,6 @@
 package com.dc.medapp.medappbe.security;
 
-import com.dc.medapp.medappbe.auth.User;
+import com.dc.medapp.medappbe.auth.UserEntity;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
@@ -21,7 +21,7 @@ public class JwtService {
         this.expirationTime = expirationTime;
     }
 
-    public String generateToken(User user) {
+    public String generateToken(UserEntity user) {
         Date now = new Date();
         Date expiryDate = new Date(now.getTime() + expirationTime);
 
@@ -39,7 +39,7 @@ public class JwtService {
         return extractClaim(token, Claims::getSubject);
     }
 
-    public boolean isTokenValid(String token, User user) {
+    public boolean isTokenValid(String token, UserEntity user) {
         final String email = extractEmail(token);
         return (email.equals(user.getEmail())) && !isTokenExpired(token);
     }

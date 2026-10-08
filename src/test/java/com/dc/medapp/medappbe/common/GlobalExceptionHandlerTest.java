@@ -11,39 +11,39 @@ public class GlobalExceptionHandlerTest {
     private final GlobalExceptionHandler handler = new GlobalExceptionHandler();
 
     @Test
-    public void handleSlotNonDisponibile_return409(){
-        var response = handler.handleSlotNonDisponibileException(new SlotNonDisponibileException("occupato"));
+    public void handleSlotNotAvailable_return409(){
+        var response = handler.handleSlotNotAvailableException(new SlotNotAvailableException("occupato"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().codice()).isEqualTo("SLOT_NON_DISPONIBILE");
+        assertThat(response.getBody().code()).isEqualTo("SLOT_NOT_AVAILABLE");
     }
 
     @Test
-    public void handleTransizioneNonValida_return409(){
-        var response = handler.handleTransizioneStatoNonValidaException(new TransizioneStatoNonValidaException("stato errato"));
+    public void handleStateTransitionNotValid_return409(){
+        var response = handler.handleInvalidStateTransitionException(new InvalidStateTransitionException("stato errato"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().codice()).isEqualTo("TRANSIZIONE_NON_VALIDA");
+        assertThat(response.getBody().code()).isEqualTo("INVALID_STATE_TRANSITION");
     }
 
     @Test
-    public void handleAccessoNonAutorizzato_return403(){
-        var response = handler.handleAccessoNonAutorizzatoException(new AccessoNonAutorizzatoException("accesso negato"));
+    public void handleAccessNotAuthorized_return403(){
+        var response = handler.handleUnauthorizedAccessException(new UnauthorizedAccessException("accesso negato"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().codice()).isEqualTo("ACCESSO_NON_AUTORIZZATO");
+        assertThat(response.getBody().code()).isEqualTo("UNAUTHORIZED_ACCESS");
     }
 
     @Test
-    public void handleRisorsaNonTrovata_return404(){
-        var response = handler.handleRisorsaNonTrovataException(new RisorsaNonTrovataException("risorsa non trovata"));
+    public void handleResourceNotFound_return404(){
+        var response = handler.handleResourceNotFoundException(new ResourceNotFoundException("risorsa non trovata"));
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().codice()).isEqualTo("RISORSA_NON_TROVATA");
+        assertThat(response.getBody().code()).isEqualTo("RESOURCE_NOT_FOUND");
     }
 
     @Test
@@ -52,6 +52,6 @@ public class GlobalExceptionHandlerTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().codice()).isEqualTo("ARGOMENTO_NON_VALIDO");
+        assertThat(response.getBody().code()).isEqualTo("INVALID_ARGUMENT");
     }
 }

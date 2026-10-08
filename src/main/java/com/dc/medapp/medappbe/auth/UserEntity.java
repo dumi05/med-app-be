@@ -10,10 +10,10 @@ import java.time.Instant;
 @Setter
 @Builder
 @Entity
-@Table(name = "utente")
+@Table(name = "app_user")
 @NoArgsConstructor
 @AllArgsConstructor
-public class User extends BaseEntity {
+public class UserEntity extends BaseEntity {
     @Column(nullable = false, unique = true)
     private String email;
     @Column(nullable = false)
