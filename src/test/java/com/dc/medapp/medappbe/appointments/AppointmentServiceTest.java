@@ -34,6 +34,8 @@ public class AppointmentServiceTest {
     @Autowired
     private AppointmentService service;
     @Autowired
+    private AppointmentRepository appointmentRepository;
+    @Autowired
     private PatientRepository patientRepository;
     @Autowired
     private AvailabilitySlotRepository availabilitySlotRepository;
@@ -103,7 +105,36 @@ public class AppointmentServiceTest {
     }
 
     @Test
-    void completeVisit_throwsResourceNotFoundException_whenAppointmentDoesNotExists(){
+    void completeVisit_throwsResourceNotFoundException_whenAppointmentDoesNotExist(){
         assertThrows(ResourceNotFoundException.class, () -> service.completeVisit(999_999L));
+    }
+
+    @Test
+    void createAppointment_setsNoShowRisk_whenPatientMissedPastAppointments() {
+        var doctor = availabilitySlotRepository.findById(slotId).orElseThrow().getDoctor();
+        var patient = patientRepository.findById(patientId).orElseThrow();
+
+        for(int i = 0; i < 2; i++) {
+            var pastSlot = availabilitySlotRepository.save(
+                    AvailabilitySlotEntity.builder()
+                            .doctor(doctor)
+                            .startTime(LocalDateTime.now().minusDays(5+i))
+                            .durationMinutes(30)
+                            .booked(true)
+                            .build()
+            );
+            appointmentRepository.save(
+                    AppointmentEntity.builder()
+                            .patient(patient)
+                            .slot(pastSlot)
+                            .status(AppointmentStatus.BOOKED)
+                            .noShowRisk(false)
+                            .build()
+            );
+        }
+
+        var appointment = service.createAppointment(patientId, slotId);
+
+        assertThat(appointment.isNoShowRisk()).isTrue();
     }
 }

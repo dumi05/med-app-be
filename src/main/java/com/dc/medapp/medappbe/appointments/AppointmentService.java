@@ -18,6 +18,7 @@ public class AppointmentService {
     private final AppointmentRepository appointmentRepository;
     private final AvailabilitySlotRepository availabilitySlotRepository;
     private final PatientRepository patientRepository;
+    private final NoShowRiskCalculator noShowRiskCalculator;
 
     @Transactional
     public AppointmentEntity createAppointment(Long patientId, Long slotId) {
@@ -25,17 +26,16 @@ public class AppointmentService {
         var slot = availabilitySlotRepository.findById(slotId).orElseThrow(() -> new ResourceNotFoundException("Slot " + slotId + " non trovato"));
 
         if(slot.isBooked()){
-            throw new SlotNotAvailableException("Slog già prenotato.");
+            throw new SlotNotAvailableException("Slot già prenotato.");
         }
         slot.setBooked(true);
 
-        slot = availabilitySlotRepository.save(slot);
         return appointmentRepository.save(AppointmentEntity
                 .builder()
                 .status(AppointmentStatus.BOOKED)
                 .patient(patient)
                 .slot(slot)
-                .noShowRisk(false)
+                .noShowRisk(noShowRiskCalculator.calculateRisk(patientId))
                 .build());
     }
 
