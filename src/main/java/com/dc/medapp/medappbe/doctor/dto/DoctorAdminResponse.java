@@ -1,4 +1,6 @@
-package com.dc.medapp.medappbe.doctor;
+package com.dc.medapp.medappbe.doctor.dto;
+
+import com.dc.medapp.medappbe.doctor.DoctorEntity;
 
 public record DoctorAdminResponse(Long id,
                                   String firstName,

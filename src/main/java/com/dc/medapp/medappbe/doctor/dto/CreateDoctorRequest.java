@@ -1,4 +1,4 @@
-package com.dc.medapp.medappbe.doctor;
+package com.dc.medapp.medappbe.doctor.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

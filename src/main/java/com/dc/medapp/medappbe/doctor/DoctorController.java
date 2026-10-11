@@ -1,5 +1,8 @@
 package com.dc.medapp.medappbe.doctor;
 
+import com.dc.medapp.medappbe.doctor.dto.CreateDoctorRequest;
+import com.dc.medapp.medappbe.doctor.dto.DoctorAdminResponse;
+import com.dc.medapp.medappbe.doctor.dto.DoctorResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
