@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Positive;
 
 import java.time.LocalDateTime;
 
-public record SlotRequest(@NotNull Long doctorId,
+public record SlotRequest(Long doctorId,
                           @NotNull @Future LocalDateTime startTime,
                           @Positive int durationMinutes) {
 }
