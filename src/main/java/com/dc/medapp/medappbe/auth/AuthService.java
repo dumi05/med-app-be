@@ -3,6 +3,7 @@ package com.dc.medapp.medappbe.auth;
 import com.dc.medapp.medappbe.auth.dto.AuthResponse;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
+import com.dc.medapp.medappbe.common.exception.InvalidCredentialsException;
 import com.dc.medapp.medappbe.patient.PatientEntity;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.security.JwtService;
@@ -59,11 +60,11 @@ public class AuthService {
 
     public AuthResponse login (LoginRequest request) {
         UserEntity user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new IllegalArgumentException("Utente non registrato con la mail: " + request.email()));
+                .orElseThrow(() -> new InvalidCredentialsException("Credenziali non valide"));
 
         if(!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             // todo: aggiungere counter per quante volte l'utente ha sbagliato la password e bloccare l'account dopo un certo numero di tentativi
-            throw new IllegalArgumentException("Password non valida.");
+            throw new InvalidCredentialsException("Credenziali non valide");
         }
 
         String token = jwtService.generateToken(user);

@@ -30,7 +30,7 @@ public class AuthControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    public void register_thenLogin() throws Exception {
+    void register_thenLogin() throws Exception {
         RegisterRequest req = new RegisterRequest("mario.rossi@test.com","password123", "Mario", "Rossi" , LocalDate.of(1990, 1, 1), true, "v1.0");
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -56,7 +56,7 @@ public class AuthControllerTest {
     }
 
     @Test
-    public void register_returnBadRequest_withoutGdprConsent() throws Exception {
+    void register_returnBadRequest_withoutGdprConsent() throws Exception {
         RegisterRequest req = new RegisterRequest("mario.rossi@test.com","password123", "Mario", "Rossi" , LocalDate.of(1990, 1, 1), false, "v1.0");
 
         mockMvc.perform(post("/api/v1/auth/register")
@@ -77,5 +77,35 @@ public class AuthControllerTest {
         assertThat(body).contains("email: ").contains("password: ");
         assertThat(body).contains("; ");
         assertThat(body).doesNotContain("corta");
+    }
+
+    @Test
+    void login_fakeEmail_throwsInvalidCredentialsException() throws Exception {
+        LoginRequest loginReq = new LoginRequest("mario.arancioni@test.com", "password123");
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(loginReq)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void login_wrongPassword_throwsInvalidCredentialsException() throws Exception {
+        RegisterRequest req = new RegisterRequest("claudio.rossi@test.com","password123", "Mario", "Rossi" , LocalDate.of(1990, 1, 1), true, "v1.0");
+
+        mockMvc.perform(post("/api/v1/auth/register")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").isNotEmpty());
+
+        LoginRequest loginReq = new LoginRequest("claudio.rossi@test.com", "password1234");
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(loginReq)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
     }
 }

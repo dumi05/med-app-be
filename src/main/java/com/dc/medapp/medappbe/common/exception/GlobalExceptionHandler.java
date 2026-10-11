@@ -50,6 +50,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", ex.getFieldErrors().stream().map(err -> err.getField()+": "+err.getDefaultMessage()).collect(Collectors.joining("; ")));
     }
 
+    @ExceptionHandler(InvalidCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCredentialsException(InvalidCredentialsException ex) {
+        return build(HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Credenziali non valide.");
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
         return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }
