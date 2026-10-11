@@ -1,4 +1,4 @@
-package com.dc.medapp.medappbe.doctor;
+package com.dc.medapp.medappbe.spceialization;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;

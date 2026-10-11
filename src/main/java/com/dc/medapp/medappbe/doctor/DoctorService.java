@@ -4,6 +4,7 @@ import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
+import com.dc.medapp.medappbe.spceialization.SpecializationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

@@ -1,6 +1,6 @@
-package com.dc.medapp.medappbe.doctor;
+package com.dc.medapp.medappbe.spceialization;
 
-import com.dc.medapp.medappbe.doctor.dto.SpecializationResponse;
+import com.dc.medapp.medappbe.spceialization.dto.SpecializationResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

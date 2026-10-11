@@ -1,6 +1,8 @@
 package com.dc.medapp.medappbe.doctor;
 
 import com.dc.medapp.medappbe.auth.Role;
+import com.dc.medapp.medappbe.spceialization.SpecializationEntity;
+import com.dc.medapp.medappbe.spceialization.SpecializationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

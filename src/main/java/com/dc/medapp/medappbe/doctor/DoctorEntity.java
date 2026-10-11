@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.doctor;
 
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.common.BaseEntity;
+import com.dc.medapp.medappbe.spceialization.SpecializationEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
