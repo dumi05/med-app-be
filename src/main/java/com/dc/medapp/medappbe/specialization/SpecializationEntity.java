@@ -1,4 +1,4 @@
-package com.dc.medapp.medappbe.spceialization;
+package com.dc.medapp.medappbe.specialization;
 
 import com.dc.medapp.medappbe.common.BaseEntity;
 import jakarta.persistence.Column;

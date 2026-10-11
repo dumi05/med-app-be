@@ -1,4 +1,4 @@
-package com.dc.medapp.medappbe.spceialization;
+package com.dc.medapp.medappbe.specialization;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;

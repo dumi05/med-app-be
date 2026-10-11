@@ -1,6 +1,6 @@
-package com.dc.medapp.medappbe.spceialization.dto;
+package com.dc.medapp.medappbe.specialization.dto;
 
-import com.dc.medapp.medappbe.spceialization.SpecializationEntity;
+import com.dc.medapp.medappbe.specialization.SpecializationEntity;
 
 public record SpecializationResponse(Long id, String name) {
     public static SpecializationResponse fromEntity(SpecializationEntity entity) {

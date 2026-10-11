@@ -1,4 +1,4 @@
-package com.dc.medapp.medappbe.doctor;
+package com.dc.medapp.medappbe.specialization;
 
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
 import org.junit.jupiter.api.Test;
