@@ -63,4 +63,13 @@ public class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void register_returnBadRequest_whenMethodInvalidArguments() throws Exception {
+        RegisterRequest req = new RegisterRequest("non-e-una-mail", "psw_corta", "Test", "Errore", LocalDate.of(1999,5,5), true, "v1.0");
+
+        mockMvc.perform(post("/api/v1/auth/register").contentType("application/json").content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
 }

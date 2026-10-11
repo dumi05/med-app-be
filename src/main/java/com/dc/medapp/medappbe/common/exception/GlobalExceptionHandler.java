@@ -4,6 +4,7 @@ import com.dc.medapp.medappbe.common.ErrorResponse;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -40,7 +41,12 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(OptimisticLockingFailureException.class)
     public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(OptimisticLockingFailureException ex) {
-        return build(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION", "La risorsa è stata modificata da un'altro utente, riprova.");
+        return build(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION", "La risorsa è stata modificata da un altro utente, riprova.");
+    }
+
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
+        return build(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", ex.getBindingResult().getFieldError() == null ? ex.getMessage() : (ex.getBindingResult().getFieldError().getField() + ": " + ex.getBindingResult().getFieldError().getDefaultMessage()));
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
