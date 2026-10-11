@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
+import java.util.stream.Collectors;
 
 
 @RestControllerAdvice
@@ -46,7 +47,7 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ErrorResponse> handleMethodArgumentNotValidException(MethodArgumentNotValidException ex) {
-        return build(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", ex.getBindingResult().getFieldError() == null ? ex.getMessage() : (ex.getBindingResult().getFieldError().getField() + ": " + ex.getBindingResult().getFieldError().getDefaultMessage()));
+        return build(HttpStatus.BAD_REQUEST, "VALIDATION_FAILED", ex.getFieldErrors().stream().map(err -> err.getField()+": "+err.getDefaultMessage()).collect(Collectors.joining("; ")));
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
