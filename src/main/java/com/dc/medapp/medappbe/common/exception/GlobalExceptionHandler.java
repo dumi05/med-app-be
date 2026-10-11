@@ -1,6 +1,7 @@
 package com.dc.medapp.medappbe.common.exception;
 
 import com.dc.medapp.medappbe.common.ErrorResponse;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -37,7 +38,13 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "INVALID_ARGUMENT", ex.getMessage());
     }
 
+    @ExceptionHandler(OptimisticLockingFailureException.class)
+    public ResponseEntity<ErrorResponse> handleOptimisticLockingFailureException(OptimisticLockingFailureException ex) {
+        return build(HttpStatus.CONFLICT, "CONCURRENT_MODIFICATION", "La risorsa è stata modificata da un'altro utente, riprova.");
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
         return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }
+
 }

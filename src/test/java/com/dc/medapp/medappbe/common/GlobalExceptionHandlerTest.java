@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.common;
 
 import com.dc.medapp.medappbe.common.exception.*;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -53,5 +54,14 @@ public class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("INVALID_ARGUMENT");
+    }
+
+    @Test
+    void handleOptimisticLockingFailure_return409(){
+        var response = handler.handleOptimisticLockingFailureException(new OptimisticLockingFailureException("versione obsoleta"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("CONCURRENT_MODIFICATION");
     }
 }

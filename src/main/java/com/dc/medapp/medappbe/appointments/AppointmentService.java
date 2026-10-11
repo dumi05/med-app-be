@@ -3,6 +3,7 @@ package com.dc.medapp.medappbe.appointments;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.SlotNotAvailableException;
+import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.LocalDateTime;
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,7 +31,11 @@ public class AppointmentService {
         if(slot.isBooked()){
             throw new SlotNotAvailableException("Slot già prenotato.");
         }
+        if(slot.getStartTime().isBefore(LocalDateTime.now())){
+            throw new SlotNotAvailableException("Slot già trascorso.");
+        }
         slot.setBooked(true);
+
 
         return appointmentRepository.save(AppointmentEntity
                 .builder()
@@ -40,8 +47,11 @@ public class AppointmentService {
     }
 
     @Transactional
-    public AppointmentEntity completeVisit(Long appointmentId) {
+    public AppointmentEntity completeVisit(Long appointmentId, Long doctorId) {
         var appointment = findOrThrowAppointment(appointmentId);
+        if(!appointment.getSlot().getDoctor().getId().equals(doctorId)) {
+            throw new UnauthorizedAccessException("Il medico non è assegnato a questo appuntamento.");
+        }
         requiredStatus(appointment, AppointmentStatus.BOOKED, "completare");
         appointment.setStatus(AppointmentStatus.COMPLETED);
         appointment.setCompletedAt(Instant.now());
@@ -49,8 +59,11 @@ public class AppointmentService {
     }
 
     @Transactional
-    public AppointmentEntity cancelAppointment(Long appointmentId) {
+    public AppointmentEntity cancelAppointment(Long appointmentId, Long patientId) {
         var appointment = findOrThrowAppointment(appointmentId);
+        if(!appointment.getPatient().getId().equals(patientId)) {
+            throw new UnauthorizedAccessException("L'appuntamento appartiene ad un altro paziente.");
+        }
         requiredStatus(appointment, AppointmentStatus.BOOKED, "cancellare");
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.setCancelledAt(Instant.now());
@@ -66,5 +79,15 @@ public class AppointmentService {
 
     private AppointmentEntity findOrThrowAppointment(Long appointmentId) {
         return appointmentRepository.findById(appointmentId).orElseThrow(() -> new ResourceNotFoundException("Appuntamento non trovato"));
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentEntity> findByPatient(Long patientId) {
+        return appointmentRepository.findByPatientIdOrderBySlotStartTimeAsc(patientId);
+    }
+
+    @Transactional(readOnly = true)
+    public List<AppointmentEntity> findByDoctor(Long doctorId) {
+        return appointmentRepository.findBySlotDoctorIdOrderBySlotStartTimeAsc(doctorId);
     }
 }

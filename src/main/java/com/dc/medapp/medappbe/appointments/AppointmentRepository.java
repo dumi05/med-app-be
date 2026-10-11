@@ -11,4 +11,6 @@ import java.util.List;
 public interface AppointmentRepository extends JpaRepository<AppointmentEntity, Long> {
     @Query("SELECT a FROM AppointmentEntity a WHERE a.patient.id = :patientId AND a.slot.startTime < :now AND a.status <> com.dc.medapp.medappbe.appointments.AppointmentStatus.CANCELLED")
     List<AppointmentEntity> findPastNotCancelledByPatientId(Long patientId, LocalDateTime now);
+    List<AppointmentEntity> findByPatientIdOrderBySlotStartTimeAsc(Long patientId);
+    List<AppointmentEntity> findBySlotDoctorIdOrderBySlotStartTimeAsc(Long doctorId);
 }
