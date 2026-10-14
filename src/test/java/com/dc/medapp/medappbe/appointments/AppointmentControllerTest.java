@@ -83,7 +83,7 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    void patient_cannotCancelAnotherPatientsAppointment_receives409() throws Exception {
+    void patient_cannotCancelAnotherPatientsAppointment_receives403() throws Exception {
         var ownerToken = registerPatient("pat.owner@email.com");
         var otherToken = registerPatient("pat.other@email.com");
         var appointmentId = book(ownerToken, slotId);

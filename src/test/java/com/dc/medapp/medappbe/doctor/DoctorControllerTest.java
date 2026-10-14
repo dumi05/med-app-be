@@ -5,6 +5,7 @@ import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
+import com.dc.medapp.medappbe.doctor.dto.CreateDoctorRequest;
 import com.dc.medapp.medappbe.specialization.SpecializationEntity;
 import com.dc.medapp.medappbe.specialization.SpecializationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,9 +13,11 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.ResultActions;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
@@ -68,6 +71,44 @@ public class DoctorControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void createDoctor_asAdmin_returns200() throws Exception {
+        var adminToken = createAdminAndLogin("admin.doc@test.it");
+        postDoctor(adminToken, validRequest("newDoc@test.it"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("newDoc@test.it"))
+                .andExpect(jsonPath("$.specialization").value("Cardiologia-test"));
+    }
+
+    @Test
+    void createDoctor_asPatient_return403() throws Exception {
+        var patientToken = registerPatient(MAIL_2);
+        postDoctor(patientToken,  validRequest("newDoc@test.it"))
+                .andExpect(status().isForbidden());
+    }
+
+    @Test
+    void createDoctor_withBlankEmail_returns400() throws Exception {
+        var adminToken = createAdminAndLogin("admin.user@test.it");
+        postDoctor(adminToken,  validRequest(""))
+                .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"));
+    }
+
+    @Test
+    void createDoctor_withExistingEmail_returns400() throws Exception {
+        var adminToken = createAdminAndLogin("admin.doc@test.com");
+        postDoctor(adminToken, validRequest("duplicated.doc@test.ok"))
+                .andExpect(status().isOk());
+        postDoctor(adminToken, validRequest("duplicated.doc@test.ok"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
+    }
+
+    private String createAdminAndLogin(String mail) throws Exception {
+        var user = userRepository.save(UserEntity.builder().passwordHash(passwordEncoder.encode("PASSWORD")).role(Role.ADMIN).email(mail).build());
+        return login(user.getEmail());
+    }
+
     private DoctorEntity createDoctor(String email) {
         var user = userRepository.save(UserEntity.builder().passwordHash(passwordEncoder.encode("PASSWORD")).role(Role.DOCTOR).email(email).build());
         return doctorRepository.save(DoctorEntity.builder().user(user).firstName("Gianpaolo").lastName("Cortelesi").specialization(specialization).build());
@@ -90,5 +131,13 @@ public class DoctorControllerTest {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(json).get("token").asString();
+    }
+
+    private ResultActions postDoctor(String token, CreateDoctorRequest request) throws Exception {
+        return mockMvc.perform(post("/api/v1/doctors").header("Authorization", "Bearer "+token).contentType(MediaType.APPLICATION_JSON).content(objectMapper.writeValueAsString(request)));
+    }
+
+    private CreateDoctorRequest validRequest(String email) {
+        return new CreateDoctorRequest(email, "password1234", "Luke", "Green", specialization.getId(), true);
     }
 }

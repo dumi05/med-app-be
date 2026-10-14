@@ -26,6 +26,7 @@ import java.util.List;
 public class SecurityConfig {
     public static final String[] ALLOWED_PATHS = {"/api/v1/auth/register", "/api/v1/auth/login", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"};
     private final JwtAuthFilter jwtAuthFilter;
+    private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -42,6 +43,7 @@ public class SecurityConfig {
                         .requestMatchers(ALLOWED_PATHS).permitAll()
                         .anyRequest().authenticated()
                 )
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
                 .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();

@@ -29,8 +29,8 @@ public class SpecializationControllerTest {
     private ObjectMapper objectMapper;
 
     @Test
-    void getAllSpecializations_returns403_whenNotAuthenticated() throws Exception {
-        mockMvc.perform(get("/api/v1/specializations")).andExpect(status().isForbidden());
+    void getAllSpecializations_returns401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(get("/api/v1/specializations")).andExpect(status().isUnauthorized());
     }
 
     @Test

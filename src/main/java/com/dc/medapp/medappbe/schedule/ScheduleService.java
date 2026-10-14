@@ -39,6 +39,13 @@ public class ScheduleService {
     }
 
     public AvailabilitySlotEntity createAvailabilitySlotAs(UserEntity actor, Long requestedDoctorId, LocalDateTime startTime, int durationMinutes) {
+
+        if(durationMinutes <= 0) {
+            throw new IllegalArgumentException("La durata deve essere superiore a 0.");
+        }
+        if(!startTime.isAfter(LocalDateTime.now())) {
+            throw new IllegalArgumentException("L'inizio deve essere nel futuro'.");
+        }
         Long doctorId = switch (actor.getRole()) {
             case ADMIN -> {
                 if(requestedDoctorId == null) {
