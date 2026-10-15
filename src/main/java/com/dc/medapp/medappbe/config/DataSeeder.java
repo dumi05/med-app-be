@@ -3,6 +3,9 @@ package com.dc.medapp.medappbe.config;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
+import com.dc.medapp.medappbe.billing.BillingService;
+import com.dc.medapp.medappbe.billing.PriceListEntity;
+import com.dc.medapp.medappbe.billing.PriceListRepository;
 import com.dc.medapp.medappbe.specialization.SpecializationEntity;
 import com.dc.medapp.medappbe.specialization.SpecializationRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,6 +14,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 @Component
@@ -18,6 +22,7 @@ import java.util.List;
 public class DataSeeder implements CommandLineRunner {
 
     private final SpecializationRepository specializationRepository;
+    private final PriceListRepository priceListRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     @Value("${app.admin-psw}")
@@ -35,6 +40,14 @@ public class DataSeeder implements CommandLineRunner {
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .role(Role.ADMIN)
                     .build());
+        }
+        if (priceListRepository.count() == 0) {
+            specializationRepository.findAll().forEach(specialization ->
+                    priceListRepository.save(PriceListEntity.builder()
+                            .specialization(specialization)
+                            .visitType(BillingService.STANDARD_VISIT_TYPE)
+                            .price(new BigDecimal("100.00"))
+                            .build()));
         }
     }
 }

@@ -5,6 +5,7 @@ import com.dc.medapp.medappbe.appointments.AppointmentRepository;
 import com.dc.medapp.medappbe.appointments.AppointmentStatus;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
+import com.dc.medapp.medappbe.billing.BillingService;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
@@ -19,6 +20,7 @@ import java.time.Instant;
 public class MedicalReportService {
     private final MedicalReportRepository medicalReportRepository;
     private final AppointmentRepository appointmentRepository;
+    private final BillingService billingService;
 
     @Transactional
     public MedicalReportEntity createReport(UserEntity user, Long appointmentId, String diagnosis, String attachmentUrl) {
@@ -39,9 +41,14 @@ public class MedicalReportService {
                 .completedAt(Instant.now())
                 .build();
 
+        var result = medicalReportRepository.save(report);
+
         appointment.setStatus(AppointmentStatus.REPORTED);
         appointment.setReportedAt(Instant.now());
-        return medicalReportRepository.save(report);
+
+        billingService.issueInvoiceItem(appointment);
+
+        return result;
     }
 
     @Transactional(readOnly = true)

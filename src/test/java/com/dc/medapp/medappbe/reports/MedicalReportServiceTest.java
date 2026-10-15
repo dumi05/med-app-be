@@ -6,6 +6,10 @@ import com.dc.medapp.medappbe.appointments.AppointmentStatus;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
+import com.dc.medapp.medappbe.billing.BillingService;
+import com.dc.medapp.medappbe.billing.InvoiceItemRepository;
+import com.dc.medapp.medappbe.billing.PriceListEntity;
+import com.dc.medapp.medappbe.billing.PriceListRepository;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
@@ -24,6 +28,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDateTime;
 
@@ -49,6 +54,10 @@ public class MedicalReportServiceTest {
     private SpecializationRepository specializationRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PriceListRepository priceListRepository;
+    @Autowired
+    private InvoiceItemRepository invoiceItemRepository;
 
     private SpecializationEntity specialization;
     private DoctorEntity doctor;
@@ -63,17 +72,24 @@ public class MedicalReportServiceTest {
 
         var booked = bookAppointment(patient, doctor, 1);
         completedAppointment = appointmentService.completeVisit(booked.getId(), doctor.getId());
+
+        priceListRepository.save(PriceListEntity.builder()
+                .specialization(specialization)
+                .visitType(BillingService.STANDARD_VISIT_TYPE)
+                .price(new BigDecimal("100.00"))
+                .build());
     }
 
     @Test
-    void createReport_storesTheReportAndMarksTheAppointmentAsReported() {
+    void createReport_storesTheReportAndInvoicesTheAppointment() {
         var report = reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null);
 
         assertThat(report.getId()).isNotNull();
         assertThat(report.getDiagnosisText()).isEqualTo("Nessun risultato.");
         assertThat(report.getCompletedAt()).isNotNull();
-        assertThat(completedAppointment.getStatus()).isEqualTo(AppointmentStatus.REPORTED);
+        assertThat(completedAppointment.getStatus()).isEqualTo(AppointmentStatus.INVOICED);
         assertThat(completedAppointment.getReportedAt()).isNotNull();
+        assertThat(completedAppointment.getInvoicedAt()).isNotNull();
     }
 
     @Test
@@ -172,6 +188,21 @@ public class MedicalReportServiceTest {
     void getReportByAppointment_throwsResourceNotFoundException_whenNoReportYet() {
         assertThrows(ResourceNotFoundException.class,
                 () -> reportService.getReportByAppointment(patient.getUser(), completedAppointment.getId()));
+    }
+
+    @Test
+    void createReport_issuesTheInvoiceItemWithTheListPrice() {
+        reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null);
+
+        var item = invoiceItemRepository.findByAppointmentId(completedAppointment.getId()).orElseThrow();
+        assertThat(item.getAmount()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void createReport_throwsResourceNotFoundException_whenThereIsNoPriceForTheSpecialization() {
+        priceListRepository.deleteAll();
+
+        assertThrows(ResourceNotFoundException.class, () -> reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null));
     }
 
     private AppointmentEntity bookAppointment(PatientEntity forPatient, DoctorEntity withDoctor, int daysFromNow) {
