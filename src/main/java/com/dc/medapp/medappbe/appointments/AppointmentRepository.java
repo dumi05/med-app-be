@@ -13,4 +13,8 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
     List<AppointmentEntity> findPastNotCancelledByPatientId(Long patientId, LocalDateTime now);
     List<AppointmentEntity> findByPatientIdOrderBySlotStartTimeAsc(Long patientId);
     List<AppointmentEntity> findBySlotDoctorIdInOrderBySlotStartTimeAsc(List<Long> doctorIds);
+
+    long countByStatus(AppointmentStatus status);
+    long countByStatusAndSlotStartTimeBefore(AppointmentStatus status, LocalDateTime time);
+    long countByStatusAndNoShowRiskTrueAndSlotStartTimeAfter(AppointmentStatus status, LocalDateTime time);
 }
