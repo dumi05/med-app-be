@@ -9,6 +9,8 @@ import com.dc.medapp.medappbe.billing.BillingService;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
+import com.dc.medapp.medappbe.delegations.DoctorDelegationService;
+import com.dc.medapp.medappbe.security.ProfileResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +22,8 @@ import java.time.Instant;
 public class MedicalReportService {
     private final MedicalReportRepository medicalReportRepository;
     private final AppointmentRepository appointmentRepository;
+    private final ProfileResolver profileResolver;
+    private final DoctorDelegationService delegationService;
     private final BillingService billingService;
 
     @Transactional
@@ -74,7 +78,14 @@ public class MedicalReportService {
     }
 
     private boolean isAssignedDoctor(AppointmentEntity appointment, UserEntity user) {
-        return user.getRole() == Role.DOCTOR && appointment.getSlot().getDoctor().getUser().getId().equals(user.getId());
+        if(user.getRole() != Role.DOCTOR){
+            return false;
+        }
+        var assignedDoctor = appointment.getSlot().getDoctor();
+        if(assignedDoctor.getUser().getId().equals(user.getId())){
+            return true;
+        }
+        return delegationService.isAuthorized(profileResolver.doctorIdOf(user), assignedDoctor.getId());
     }
 
     private AppointmentEntity findAppointmentOrThrow(Long appointmentId) {

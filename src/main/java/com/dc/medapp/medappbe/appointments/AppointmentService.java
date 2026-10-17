@@ -4,6 +4,7 @@ import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.SlotNotAvailableException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
+import com.dc.medapp.medappbe.delegations.DoctorDelegationService;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotRepository;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -22,6 +24,7 @@ public class AppointmentService {
     private final AvailabilitySlotRepository availabilitySlotRepository;
     private final PatientRepository patientRepository;
     private final NoShowRiskCalculator noShowRiskCalculator;
+    private final DoctorDelegationService delegationService;
 
     @Transactional
     public AppointmentEntity createAppointment(Long patientId, Long slotId) {
@@ -49,7 +52,8 @@ public class AppointmentService {
     @Transactional
     public AppointmentEntity completeVisit(Long appointmentId, Long doctorId) {
         var appointment = findOrThrowAppointment(appointmentId);
-        if(!appointment.getSlot().getDoctor().getId().equals(doctorId)) {
+        var assignedDoctorId = appointment.getSlot().getDoctor().getId();
+        if(!delegationService.isAuthorized(doctorId, assignedDoctorId)){
             throw new UnauthorizedAccessException("Il medico non è assegnato a questo appuntamento.");
         }
         requiredStatus(appointment, AppointmentStatus.BOOKED, "completare");
@@ -88,6 +92,10 @@ public class AppointmentService {
 
     @Transactional(readOnly = true)
     public List<AppointmentEntity> findByDoctor(Long doctorId) {
-        return appointmentRepository.findBySlotDoctorIdOrderBySlotStartTimeAsc(doctorId);
+        var doctorIds = new ArrayList<Long>();
+        doctorIds.add(doctorId);
+        doctorIds.addAll(delegationService.activeDelegatingDoctorIds(doctorId));
+        return appointmentRepository.findBySlotDoctorIdInOrderBySlotStartTimeAsc(doctorIds);
     }
+
 }
