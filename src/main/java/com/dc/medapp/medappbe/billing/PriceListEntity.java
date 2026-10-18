@@ -16,7 +16,7 @@ import java.math.BigDecimal;
 @Builder
 public class PriceListEntity extends BaseEntity {
     @ManyToOne(optional = false)
-    @JoinColumn(name = "specialization_id", nullable = false, unique = true)
+    @JoinColumn(name = "specialization_id", nullable = false)
     private SpecializationEntity specialization;
 
     @Column(name = "visit_type", nullable = false)
@@ -24,4 +24,5 @@ public class PriceListEntity extends BaseEntity {
 
     @Column(name = "price", nullable = false, precision = 10, scale = 2)
     private BigDecimal price;
+
 }

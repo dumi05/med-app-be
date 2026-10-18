@@ -16,8 +16,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 public class ApiTestClient {
@@ -82,5 +81,14 @@ public class ApiTestClient {
 
     public ResultActions getAs(String token, String path) throws Exception {
         return mockMvc.perform(get(path).header("Authorization", "Bearer " + token));
+    }
+
+    public ResultActions putAs(String token, String path, Object body) throws Exception {
+        return mockMvc.perform(
+                put(path)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(body))
+        );
     }
 }
