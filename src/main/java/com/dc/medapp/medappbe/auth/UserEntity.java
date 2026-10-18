@@ -23,6 +23,9 @@ public class UserEntity extends BaseEntity {
     private Role role;
     @Column(nullable = false, updatable = false)
     private Instant createdAt;
+    @Builder.Default
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    private boolean enabled = true;
 
     @PrePersist
     protected void onCreate() {

@@ -7,7 +7,8 @@ public record DoctorAdminResponse(Long id,
                                   String lastName,
                                   String email,
                                   String specialization,
-                                  boolean delegationConsent) {
+                                  boolean delegationConsent,
+                                  boolean active) {
     public static DoctorAdminResponse fromEntity(DoctorEntity doctor) {
         return new DoctorAdminResponse(
                 doctor.getId(),
@@ -15,7 +16,8 @@ public record DoctorAdminResponse(Long id,
                 doctor.getLastName(),
                 doctor.getUser().getEmail(),
                 doctor.getSpecialization().getName(),
-                doctor.isDelegationConsent()
+                doctor.isDelegationConsent(),
+                doctor.getUser().isEnabled()
         );
     }
 }

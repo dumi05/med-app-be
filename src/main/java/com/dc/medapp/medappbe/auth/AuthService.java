@@ -62,7 +62,7 @@ public class AuthService {
         UserEntity user = userRepository.findByEmail(request.email())
                 .orElseThrow(() -> new InvalidCredentialsException("Credenziali non valide"));
 
-        if(!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+        if(!user.isEnabled() || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
             // todo: aggiungere counter per quante volte l'utente ha sbagliato la password e bloccare l'account dopo un certo numero di tentativi
             throw new InvalidCredentialsException("Credenziali non valide");
         }

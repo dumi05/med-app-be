@@ -17,4 +17,6 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
     long countByStatus(AppointmentStatus status);
     long countByStatusAndSlotStartTimeBefore(AppointmentStatus status, LocalDateTime time);
     long countByStatusAndNoShowRiskTrueAndSlotStartTimeAfter(AppointmentStatus status, LocalDateTime time);
+
+    boolean existsBySlotDoctorIdAndStatusAndSlotStartTimeAfter(Long doctorId, AppointmentStatus status, LocalDateTime time);
 }
