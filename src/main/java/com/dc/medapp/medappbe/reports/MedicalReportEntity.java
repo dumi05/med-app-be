@@ -1,7 +1,7 @@
 package com.dc.medapp.medappbe.reports;
 
 import com.dc.medapp.medappbe.appointments.AppointmentEntity;
-import com.dc.medapp.medappbe.common.BaseEntity;
+import com.dc.medapp.medappbe.common.AuditableEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -14,7 +14,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class MedicalReportEntity extends BaseEntity {
+public class MedicalReportEntity extends AuditableEntity {
     @OneToOne(optional = false)
     @JoinColumn(name = "appointment_id", nullable = false, unique = true)
     private AppointmentEntity appointment;

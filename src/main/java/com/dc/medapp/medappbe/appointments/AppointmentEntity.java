@@ -1,6 +1,6 @@
 package com.dc.medapp.medappbe.appointments;
 
-import com.dc.medapp.medappbe.common.BaseEntity;
+import com.dc.medapp.medappbe.common.AuditableEntity;
 import com.dc.medapp.medappbe.patient.PatientEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
 import jakarta.persistence.*;
@@ -15,7 +15,7 @@ import java.time.Instant;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class AppointmentEntity extends BaseEntity {
+public class AppointmentEntity extends AuditableEntity {
     @ManyToOne(optional = false)
     @JoinColumn(name = "patient_id")
     private PatientEntity patient;

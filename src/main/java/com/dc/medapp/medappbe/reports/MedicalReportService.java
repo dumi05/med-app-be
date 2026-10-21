@@ -3,6 +3,7 @@ package com.dc.medapp.medappbe.reports;
 import com.dc.medapp.medappbe.appointments.AppointmentEntity;
 import com.dc.medapp.medappbe.appointments.AppointmentRepository;
 import com.dc.medapp.medappbe.appointments.AppointmentStatus;
+import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.billing.BillingService;
@@ -27,6 +28,7 @@ public class MedicalReportService {
     private final BillingService billingService;
 
     @Transactional
+    @Audited(action = "WRITE_REPORT", entity = "MedicalReport")
     public MedicalReportEntity createReport(UserEntity user, Long appointmentId, String diagnosis, String attachmentUrl) {
         var appointment = findAppointmentOrThrow(appointmentId);
 
@@ -56,6 +58,7 @@ public class MedicalReportService {
     }
 
     @Transactional(readOnly = true)
+    @Audited(action = "READ_REPORT", entity = "MedicalReport", idArg = 1)
     public MedicalReportEntity getReport(UserEntity user, Long reportId) {
         var report = medicalReportRepository.findById(reportId).orElseThrow(() -> new ResourceNotFoundException("Report non trovato: " + reportId));
         checkReadAccess(report.getAppointment(), user);
@@ -63,6 +66,7 @@ public class MedicalReportService {
     }
 
     @Transactional(readOnly = true)
+    @Audited(action = "READ_REPORT", entity = "MedicalReport")
     public MedicalReportEntity getReportByAppointment(UserEntity user, Long appointmentId) {
         var appointment = findAppointmentOrThrow(appointmentId);
         checkReadAccess(appointment, user);

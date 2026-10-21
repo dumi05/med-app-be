@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.billing;
 
 import com.dc.medapp.medappbe.appointments.AppointmentEntity;
 import com.dc.medapp.medappbe.appointments.AppointmentStatus;
+import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +21,7 @@ public class BillingService {
     private final PriceListRepository priceListRepository;
 
     @Transactional
+    @Audited(action = "ISSUE_INVOICE", entity = "InvoiceItem")
     public InvoiceItemEntity issueInvoiceItem(AppointmentEntity appointment) {
         if(appointment.getStatus() != AppointmentStatus.REPORTED) {
             throw new InvalidStateTransitionException("Impossibile fatturare un appuntamento in stato " + appointment.getStatus());

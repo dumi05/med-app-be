@@ -1,5 +1,6 @@
 package com.dc.medapp.medappbe.appointments;
 
+import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.SlotNotAvailableException;
@@ -27,6 +28,7 @@ public class AppointmentService {
     private final DoctorDelegationService delegationService;
 
     @Transactional
+    @Audited(action = "BOOK_APPOINTMENT", entity = "Appointment")
     public AppointmentEntity createAppointment(Long patientId, Long slotId) {
         var patient = patientRepository.findById(patientId).orElseThrow(() -> new ResourceNotFoundException("Paziente " + patientId + " non trovato"));
         var slot = availabilitySlotRepository.findById(slotId).orElseThrow(() -> new ResourceNotFoundException("Slot " + slotId + " non trovato"));
@@ -50,6 +52,7 @@ public class AppointmentService {
     }
 
     @Transactional
+    @Audited(action = "COMPLETE_VISIT", entity = "Appointment", idArg = 0)
     public AppointmentEntity completeVisit(Long appointmentId, Long doctorId) {
         var appointment = findOrThrowAppointment(appointmentId);
         var assignedDoctorId = appointment.getSlot().getDoctor().getId();
@@ -63,6 +66,7 @@ public class AppointmentService {
     }
 
     @Transactional
+    @Audited(action = "CANCEL_APPOINTMENT", entity = "Appointment", idArg = 0)
     public AppointmentEntity cancelAppointment(Long appointmentId, Long patientId) {
         var appointment = findOrThrowAppointment(appointmentId);
         if(!appointment.getPatient().getId().equals(patientId)) {

@@ -1,6 +1,6 @@
 package com.dc.medapp.medappbe.delegations;
 
-import com.dc.medapp.medappbe.common.BaseEntity;
+import com.dc.medapp.medappbe.common.AuditableEntity;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
 import jakarta.persistence.*;
 import lombok.*;
@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class DoctorDelegationEntity extends BaseEntity {
+public class DoctorDelegationEntity extends AuditableEntity {
     @ManyToOne(optional = false)
     @JoinColumn(name = "delegating_doctor_id", nullable = false)
     private DoctorEntity delegatingDoctor;

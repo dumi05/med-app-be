@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.doctor;
 
 import com.dc.medapp.medappbe.appointments.AppointmentRepository;
 import com.dc.medapp.medappbe.appointments.AppointmentStatus;
+import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
@@ -26,6 +27,7 @@ public class DoctorService {
     private final AppointmentRepository appointmentRepository;
 
     @Transactional
+    @Audited(action = "WRITE_DOCTOR", entity = "Doctor")
     public DoctorEntity createDoctor(String email, String password, String firstName, String lastName, Long specializationId, boolean delegationConsent) {
         var specialization = specializationRepository.findById(specializationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Specializzazione non trovata: " + specializationId));
@@ -56,6 +58,7 @@ public class DoctorService {
     }
 
     @Transactional
+    @Audited(action = "UPDATE_DOCTOR", entity = "Doctor", idArg = 0)
     public DoctorEntity updateDoctor(Long doctorId, String firstName, String lastName, Long specializationId, boolean delegationConsent) {
         DoctorEntity doctor = this.getDoctorById(doctorId);
         var specialization = specializationRepository.findById(specializationId)
@@ -69,6 +72,7 @@ public class DoctorService {
     }
 
     @Transactional
+    @Audited(action = "DEACTIVATE_DOCTOR", entity = "Doctor", idArg = 0)
     public DoctorEntity deactivate(Long docId) {
         var doctor = this.getDoctorById(docId);
         if(appointmentRepository.existsBySlotDoctorIdAndStatusAndSlotStartTimeAfter(docId, AppointmentStatus.BOOKED, LocalDateTime.now())){
@@ -79,6 +83,7 @@ public class DoctorService {
     }
 
     @Transactional
+    @Audited(action = "ACTIVATE_DOCTOR", entity = "Doctor", idArg = 0)
     public DoctorEntity activate(Long docId) {
         var doctor = this.getDoctorById(docId);
         doctor.getUser().setEnabled(true);

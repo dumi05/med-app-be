@@ -1,5 +1,6 @@
 package com.dc.medapp.medappbe.billing;
 
+import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -20,6 +21,7 @@ public class PriceListService {
     }
 
     @Transactional
+    @Audited(action = "UPDATE_PRICE", entity = "PriceList", idArg = 0)
     public PriceListEntity updatePrice(Long priceListId, BigDecimal newPrice) {
         var entry = priceListRepository.findById(priceListId)
                 .orElseThrow(() -> new ResourceNotFoundException("Voce di listino non trovata: " + priceListId));
