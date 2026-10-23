@@ -6,6 +6,7 @@ import com.dc.medapp.medappbe.appointments.dto.AppointmentResponse;
 import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
+import com.dc.medapp.medappbe.delegations.ReportDelegationService;
 import com.dc.medapp.medappbe.patient.dto.PatientDataExportResponse;
 import com.dc.medapp.medappbe.patient.dto.PatientProfileResponse;
 import com.dc.medapp.medappbe.reports.MedicalReportRepository;
@@ -29,6 +30,7 @@ public class PatientService {
     private final AppointmentService appointmentService;
     private final MedicalReportRepository reportRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ReportDelegationService reportDelegationService;
 
     /**
      * Right to erasure (GDPR art. 17) without breaking the duty to keep clinical and accounting records: the rows stay,
@@ -45,6 +47,7 @@ public class PatientService {
         }
 
         cancelFutureAppointments(patient);
+        reportDelegationService.revokeAll(patId);
 
         patient.setFirstName(ANONYMIZED_FIRST_NAME);
         patient.setLastName(ANONYMIZED_LAST_NAME);

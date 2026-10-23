@@ -24,7 +24,7 @@ import java.util.List;
 @EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
-    public static final String[] ALLOWED_PATHS = {"/api/v1/auth/register", "/api/v1/auth/login", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"};
+    public static final String[] ALLOWED_PATHS = {"/api/v1/auth/register", "/api/v1/auth/login", "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**", "/api/v1/report-delegations/*/medical-reports"};
     private final JwtAuthFilter jwtAuthFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
 
