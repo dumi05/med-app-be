@@ -36,7 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 public class AppointmentLifecycleIntegrationTest {
 
-    private static final String ADMIN_EMAIL = "admin@studio-medico.com";
+    private static final String ADMIN_EMAIL = "admin@studio-medico.it";
     private static final String ADMIN_PASSWORD = "admin123";
     private static final String DOCTOR_EMAIL = "e2e.doc@studio-medico.com";
     private static final String PATIENT_EMAIL = "e2e.patient@studio-medico.com";
