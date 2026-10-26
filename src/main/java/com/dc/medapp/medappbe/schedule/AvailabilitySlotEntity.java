@@ -28,4 +28,12 @@ public class AvailabilitySlotEntity extends BaseEntity {
 
     @Column(name = "booked", nullable = false)
     private boolean booked;
+
+    public LocalDateTime endTime() {
+        return startTime.plusMinutes(durationMinutes);
+    }
+
+    public boolean overlaps(LocalDateTime otherStart, LocalDateTime otherEnd){
+        return startTime.isBefore(otherEnd) && endTime().isAfter(otherStart);
+    }
 }

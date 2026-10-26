@@ -61,6 +61,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.FORBIDDEN, "UNAUTHORIZED_ACCESS", "Accesso negato..");
     }
 
+    @ExceptionHandler(SlotOverlapException.class)
+    public ResponseEntity<ErrorResponse> handleSlotOverlapException(SlotOverlapException ex) {
+        return build(HttpStatus.CONFLICT, "SLOT_OVERLAP", ex.getMessage());
+    }
+
+    @ExceptionHandler(AppointmentOverlapException.class)
+    public ResponseEntity<ErrorResponse> handleAppointmentOverlapException(AppointmentOverlapException ex) {
+        return build(HttpStatus.CONFLICT, "APPOINTMENT_OVERLAP", ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
         return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }

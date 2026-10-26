@@ -146,6 +146,19 @@ public class AppointmentControllerTest {
                 .andExpect(status().isForbidden());
     }
 
+    @Test
+    void patient_bookingASlotThatOverlapsAnotherOwnVisit_receives409() throws Exception {
+        var token = registerPatient("patient.overlap@email.com");
+        book(token, slotId);
+        var otherDoctor = createDoctor("other.doc.overlap@email.com");
+        var overlapping = availabilitySlotRepository.save(AvailabilitySlotEntity.builder().doctor(otherDoctor).booked(false).durationMinutes(30)
+                .startTime(availabilitySlotRepository.findById(slotId).orElseThrow().getStartTime().plusMinutes(10)).build()).getId();
+
+        mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer " + token).contentType("application/json").content(objectMapper.writeValueAsString(new CreateAppointmentRequest(overlapping))))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("APPOINTMENT_OVERLAP"));
+    }
+
     private String registerPatient(String mail) throws Exception {
         var request = new RegisterRequest(mail, PASSWORD, "Luca", "Amauri", LocalDate.of(1994,5,2), true, "v1.0");
         var json = mockMvc.perform(post("/api/v1/auth/register")

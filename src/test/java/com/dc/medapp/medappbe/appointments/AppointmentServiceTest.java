@@ -3,18 +3,15 @@ package com.dc.medapp.medappbe.appointments;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
-import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
-import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
-import com.dc.medapp.medappbe.common.exception.SlotNotAvailableException;
-import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
+import com.dc.medapp.medappbe.common.exception.*;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
 import com.dc.medapp.medappbe.doctor.DoctorRepository;
-import com.dc.medapp.medappbe.specialization.SpecializationEntity;
-import com.dc.medapp.medappbe.specialization.SpecializationRepository;
 import com.dc.medapp.medappbe.patient.PatientEntity;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotRepository;
+import com.dc.medapp.medappbe.specialization.SpecializationEntity;
+import com.dc.medapp.medappbe.specialization.SpecializationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -213,6 +210,49 @@ public class AppointmentServiceTest {
         assertThat(slot.getVersion()).isGreaterThan(versionBefore);
     }
 
+    // ---- a patient cannot be in two places at once ----------------------------------------------
+
+    @Test
+    void createAppointment_throwsAppointmentOverlapException_whenThePatientAlreadyHasAnOverlappingVisitWithAnotherDoctor() {
+        service.createAppointment(patientId, slotId);
+        var firstStart = availabilitySlotRepository.findById(slotId).orElseThrow().getStartTime();
+        var overlapping = saveSlotOf(createDoctor("other.doc.overlap@test.lo"), firstStart.plusMinutes(15));
+
+        assertThrows(AppointmentOverlapException.class, () -> service.createAppointment(patientId, overlapping.getId()));
+        assertThat(availabilitySlotRepository.findById(overlapping.getId()).orElseThrow().isBooked()).isFalse();
+    }
+
+    @Test
+    void createAppointment_succeeds_whenTheSlotsOnlyTouch() {
+        service.createAppointment(patientId, slotId);
+        var firstStart = availabilitySlotRepository.findById(slotId).orElseThrow().getStartTime();
+        var next = saveSlotOf(createDoctor("other.doc.touch@test.lo"), firstStart.plusMinutes(30));
+        var before = saveSlotOf(createDoctor("other.doc.before@test.lo"), firstStart.minusMinutes(30));
+
+        assertThat(service.createAppointment(patientId, next.getId())).isNotNull();
+        assertThat(service.createAppointment(patientId, before.getId())).isNotNull();
+    }
+
+    @Test
+    void createAppointment_succeeds_whenTheOverlappingVisitWasCancelled() {
+        var first = service.createAppointment(patientId, slotId);
+        service.cancelAppointment(first.getId(), patientId);
+        var firstStart = availabilitySlotRepository.findById(slotId).orElseThrow().getStartTime();
+        var overlapping = saveSlotOf(createDoctor("other.doc.cancel@test.lo"), firstStart.plusMinutes(10));
+
+        assertThat(service.createAppointment(patientId, overlapping.getId())).isNotNull();
+    }
+
+    @Test
+    void createAppointment_succeeds_forAnotherPatientAtTheSameTime() {
+        service.createAppointment(patientId, slotId);
+        var firstStart = availabilitySlotRepository.findById(slotId).orElseThrow().getStartTime();
+        var overlapping = saveSlotOf(createDoctor("other.doc.pat2@test.lo"), firstStart.plusMinutes(10));
+        var otherPatientId = createPatient("other.patient.overlap@test.lo").getId();
+
+        assertThat(service.createAppointment(otherPatientId, overlapping.getId())).isNotNull();
+    }
+
     private DoctorEntity createDoctor(String email){
         var doctorUser = userRepository.save(UserEntity.builder().email(email).passwordHash("hash").role(Role.DOCTOR).build());
         return doctorRepository.save(DoctorEntity.builder().user(doctorUser).firstName("Giovanni").lastName("Latorre").specialization(specialization).build());
@@ -221,5 +261,9 @@ public class AppointmentServiceTest {
     private PatientEntity createPatient(String email){
         var patientUser = userRepository.save(UserEntity.builder().role(Role.PATIENT).email(email).passwordHash("hash2").build());
         return patientRepository.save(PatientEntity.builder().firstName("Chiara").lastName("Aiello").user(patientUser).gdprConsent(true).gdprConsentTimestamp(Instant.now()).gdprConsentVersion("v1.0").anonymized(false).build());
+    }
+
+    private AvailabilitySlotEntity saveSlotOf(DoctorEntity slotDoctor, LocalDateTime startTime) {
+        return availabilitySlotRepository.save(AvailabilitySlotEntity.builder().doctor(slotDoctor).startTime(startTime).durationMinutes(30).booked(false).build());
     }
 }

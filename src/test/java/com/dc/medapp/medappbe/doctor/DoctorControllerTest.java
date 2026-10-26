@@ -104,6 +104,16 @@ public class DoctorControllerTest {
                 .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
     }
 
+    @Test
+    void getAll_carriesTheSpecializationIdOfEachDoctor() throws Exception {
+        createDoctor(MAIL);
+        var token = registerPatient(MAIL_2);
+        mockMvc.perform(get("/api/v1/doctors").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].specializationId").value(specialization.getId()))
+                .andExpect(jsonPath("$[0].specialization").value("Cardiologia-test"));
+    }
+
     private String createAdminAndLogin(String mail) throws Exception {
         var user = userRepository.save(UserEntity.builder().passwordHash(passwordEncoder.encode("PASSWORD")).role(Role.ADMIN).email(mail).build());
         return login(user.getEmail());

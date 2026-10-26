@@ -1,12 +1,10 @@
 package com.dc.medapp.medappbe.appointments;
 
 import com.dc.medapp.medappbe.audit.Audited;
-import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
-import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
-import com.dc.medapp.medappbe.common.exception.SlotNotAvailableException;
-import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
+import com.dc.medapp.medappbe.common.exception.*;
 import com.dc.medapp.medappbe.delegations.DoctorDelegationService;
 import com.dc.medapp.medappbe.patient.PatientRepository;
+import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -39,6 +37,7 @@ public class AppointmentService {
         if(slot.getStartTime().isBefore(LocalDateTime.now())){
             throw new SlotNotAvailableException("Slot già trascorso.");
         }
+        assertPatientIsFree(patientId, slot);
         slot.setBooked(true);
 
 
@@ -102,4 +101,11 @@ public class AppointmentService {
         return appointmentRepository.findBySlotDoctorIdInOrderBySlotStartTimeAsc(doctorIds);
     }
 
+    private void assertPatientIsFree(Long patientId, AvailabilitySlotEntity slot) {
+        var clash = appointmentRepository.findByPatientIdAndStatus(patientId, AppointmentStatus.BOOKED).stream()
+                .anyMatch(booked -> booked.getSlot().overlaps(slot.getStartTime(), slot.endTime()));
+        if (clash) {
+            throw new AppointmentOverlapException("Hai già una prenotazione in quella fascia oraria.");
+        }
+    }
 }

@@ -7,6 +7,7 @@ import com.dc.medapp.medappbe.delegations.dto.CreateReportDelegationRequest;
 import com.dc.medapp.medappbe.doctor.DoctorRepository;
 import com.dc.medapp.medappbe.doctor.dto.CreateDoctorRequest;
 import com.dc.medapp.medappbe.reports.dto.CreateMedicalReportRequest;
+import com.dc.medapp.medappbe.schedule.dto.BulkSlotRequest;
 import com.dc.medapp.medappbe.schedule.dto.SlotRequest;
 import com.dc.medapp.medappbe.support.ApiTestClient;
 import org.junit.jupiter.api.BeforeEach;
@@ -23,7 +24,10 @@ import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.util.ArrayList;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -79,7 +83,7 @@ public class AppointmentLifecycleIntegrationTest {
 
         // patient
         patientToken = api.registerPatient(PATIENT_EMAIL);
-        api.getAs(patientToken, "/api/v1/schedule/availability?specializationId=" + specializationId+ "&date="+startTime.toLocalDate())
+        api.getAs(patientToken, "/api/v1/schedule/availability?specializationId=" + specializationId+ "&from="+startTime.toLocalDate() + "&to="+startTime.toLocalDate())
         .andExpect(status().isOk())
                 .andExpect(jsonPath("$[?(@.id == " + slotId + ")]").isNotEmpty());
         appointmentId = json(api.postAs(patientToken, "/api/v1/appointments", new CreateAppointmentRequest(slotId))
@@ -180,6 +184,33 @@ public class AppointmentLifecycleIntegrationTest {
         appointmentId = api.book(patientToken, slotId);
         api.postAs(doctorToken, "/api/v1/appointments/"+appointmentId+"/complete", null).andExpect(status().isOk());
         api.postAs(doctorToken, "/api/v1/medical-reports", new CreateMedicalReportRequest(appointmentId, DIAGNOSIS, null))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void patient_cannotBookTwoOverlappingVisits_untilTheFirstOneIsCancelled() throws Exception {
+        var specializationId = specializationIdOf("Cardiologia");
+        var date = LocalDate.now().plusDays(1);
+        var slotIds = new ArrayList<Long>();
+        // Two doctors open a slot at the same hour, each with one request of the bulk creation
+        for (var email : new String[]{DOCTOR_EMAIL, "e2e.doctor2@studio-medico.it"}) {
+            api.postAs(adminToken, "/api/v1/doctors",
+                            new CreateDoctorRequest(email, ApiTestClient.PASSWORD, "Giulia", "Verdi", specializationId, true))
+                    .andExpect(status().isOk());
+            var created = json(api.postAs(api.login(email), "/api/v1/schedule/slots/bulk",
+                            new BulkSlotRequest(null, date, LocalTime.of(10, 0), LocalTime.of(10, 30), 30))
+                    .andExpect(status().isOk()));
+            slotIds.add(created.get(0).get("id").asLong());
+        }
+        patientToken = api.registerPatient(PATIENT_EMAIL);
+
+        var first = api.book(patientToken, slotIds.get(0));
+        api.postAs(patientToken, "/api/v1/appointments", new CreateAppointmentRequest(slotIds.get(1)))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("APPOINTMENT_OVERLAP"));
+
+        api.postAs(patientToken, "/api/v1/appointments/" + first + "/cancel", null).andExpect(status().isOk());
+        api.postAs(patientToken, "/api/v1/appointments", new CreateAppointmentRequest(slotIds.get(1)))
                 .andExpect(status().isOk());
     }
 
