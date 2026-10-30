@@ -13,6 +13,7 @@ public record ReportDelegationResponse(
         LocalDate expiresAt,
         boolean revoked,
         boolean active,
+        boolean includeAttachments,
         Instant createdAt
 ) {
     public static ReportDelegationResponse fromEntity(ReportDelegationEntity entity) {
@@ -24,6 +25,7 @@ public record ReportDelegationResponse(
                 entity.getExpiresAt(),
                 entity.isRevoked(),
                 entity.isActive(LocalDate.now()),
+                entity.isIncludeAttachments(),
                 entity.getCreatedAt()
         );
     }

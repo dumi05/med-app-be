@@ -80,7 +80,7 @@ public class AuditLogControllerTest {
 
         var appointmentId = api.book(patientToken, newSlot().getId());
         api.postAs(doctorToken, "/api/v1/appointments/" + appointmentId + "/complete", null).andExpect(status().isOk());
-        var reportJson = api.postAs(doctorToken, "/api/v1/medical-reports", new CreateMedicalReportRequest(appointmentId, "Tutto regolare", null))
+        var reportJson = api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, "Tutto regolare"), null)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         var reportId = objectMapper.readTree(reportJson).get("id").asLong();

@@ -111,8 +111,7 @@ public class DelegationAuthorizationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
 
-        api.postAs(delegateToken, "/api/v1/medical-reports",
-                        new CreateMedicalReportRequest(appointmentId, "No findings.", null))
+        api.postReport(delegateToken, new CreateMedicalReportRequest(appointmentId, "No findings."), null)
                 .andExpect(status().isOk());
     }
 
@@ -120,8 +119,7 @@ public class DelegationAuthorizationTest {
     void delegatingDoctor_canReadTheReportWrittenByTheDelegate() throws Exception {
         saveDelegation(DelegationStatus.ACCEPTED, -1, 5);
         api.postAs(delegateToken, "/api/v1/appointments/" + appointmentId + "/complete", null).andExpect(status().isOk());
-        api.postAs(delegateToken, "/api/v1/medical-reports",
-                new CreateMedicalReportRequest(appointmentId, "No findings.", null)).andExpect(status().isOk());
+        api.postReport(delegateToken, new CreateMedicalReportRequest(appointmentId, "No findings."), null).andExpect(status().isOk());
 
         api.getAs(delegatingToken, "/api/v1/medical-reports?appointmentId=" + appointmentId)
                 .andExpect(status().isOk())

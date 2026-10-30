@@ -8,10 +8,13 @@ import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
 import com.dc.medapp.medappbe.doctor.DoctorRepository;
+import com.dc.medapp.medappbe.reports.dto.CreateMedicalReportRequest;
 import com.dc.medapp.medappbe.specialization.SpecializationEntity;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
+import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
@@ -90,5 +93,16 @@ public class ApiTestClient {
                         .contentType("application/json")
                         .content(objectMapper.writeValueAsString(body))
         );
+    }
+
+    public ResultActions postReport(String token, CreateMedicalReportRequest req, MockMultipartFile file) throws Exception {
+        var builder = multipart("/api/v1/medical-reports")
+                .file(new MockMultipartFile("report", "", "application/json", objectMapper.writeValueAsBytes(req)))
+                .header("Authorization", "Bearer "+token);
+        if(file != null) {
+            builder.file(file);
+        }
+        return mockMvc.perform(builder);
+
     }
 }

@@ -10,12 +10,14 @@ import com.dc.medapp.medappbe.reports.dto.CreateMedicalReportRequest;
 import com.dc.medapp.medappbe.schedule.dto.BulkSlotRequest;
 import com.dc.medapp.medappbe.schedule.dto.SlotRequest;
 import com.dc.medapp.medappbe.support.ApiTestClient;
+import com.dc.medapp.medappbe.support.TestFiles;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -29,10 +31,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
@@ -81,7 +83,6 @@ public class AppointmentLifecycleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.doctorId").value(doctorId))).get("id").asLong();
 
-        // patient
         patientToken = api.registerPatient(PATIENT_EMAIL);
         api.getAs(patientToken, "/api/v1/schedule/availability?specializationId=" + specializationId+ "&from="+startTime.toLocalDate() + "&to="+startTime.toLocalDate())
         .andExpect(status().isOk())
@@ -90,14 +91,12 @@ public class AppointmentLifecycleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("BOOKED"))).get("id").asLong();
 
-        // doc complete visit
         api.postAs(doctorToken, "/api/v1/appointments/"+appointmentId+"/complete", null)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
-        api.postAs(doctorToken, "/api/v1/medical-reports", new CreateMedicalReportRequest(appointmentId, DIAGNOSIS, null))
+        api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, DIAGNOSIS), null)
                 .andExpect(status().isOk());
 
-        // patient sees the visit invoiced and reads the report
         api.getAs(patientToken, "/api/v1/appointments/me")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("INVOICED"));
@@ -105,7 +104,6 @@ public class AppointmentLifecycleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.diagnosisText").value(DIAGNOSIS));
 
-        // admin: the revenue of the visit is in the dashboard, and the whole story is in the access log
         api.getAs(adminToken, "/api/v1/dashboard/kpi")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAppointments").value(1))
@@ -122,11 +120,10 @@ public class AppointmentLifecycleIntegrationTest {
         invoicedVisit();
 
         var delegation = json(api.postAs(patientToken, "/api/v1/report-delegations",
-                        new CreateReportDelegationRequest("Luigi Neri", "luigi.neri@example.com", null))
+                        new CreateReportDelegationRequest("Luigi Neri", "luigi.neri@example.com", null, false))
                 .andExpect(status().isOk()));
         var token = delegation.get("token").asString();
 
-        // The caregiver has no account and sends no Authorization header
         mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
@@ -138,7 +135,6 @@ public class AppointmentLifecycleIntegrationTest {
         mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports"))
                 .andExpect(status().isNotFound());
 
-        // Both the access and the refused attempt are in the log
         api.getAs(adminToken, "/api/v1/audit-logs?limit=200")
                 .andExpect(jsonPath("$[?(@.action == 'ACCESS_REPORTS_VIA_DELEGATION' && @.outcome == 'SUCCESS')]").isNotEmpty())
                 .andExpect(jsonPath("$[?(@.action == 'ACCESS_REPORTS_VIA_DELEGATION' && @.outcome == 'FAILURE')]").isNotEmpty());
@@ -148,7 +144,7 @@ public class AppointmentLifecycleIntegrationTest {
     void erasure_removesTheIdentity_butKeepsTheRevenueAndTheClinicalRecord() throws Exception {
         invoicedVisit();
         var token = json(api.postAs(patientToken, "/api/v1/report-delegations",
-                        new CreateReportDelegationRequest("Luigi Neri", "luigi.neri@example.com", null))
+                        new CreateReportDelegationRequest("Luigi Neri", "luigi.neri@example.com", null, false))
                 .andExpect(status().isOk())).get("token").asString();
 
         api.getAs(patientToken, "/api/v1/patients/me/export")
@@ -159,11 +155,9 @@ public class AppointmentLifecycleIntegrationTest {
 
         api.postAs(patientToken, "/api/v1/patients/me/anonymize", null).andExpect(status().isNoContent());
 
-        // The account is dead (not active), the caregiver link too
         api.getAs(patientToken, "/api/v1/patients/me/export").andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports")).andExpect(status().isNotFound());
 
-        // The doctor still sees the visit, now without a name; the money stays in the dashboard
         api.getAs(doctorToken, "/api/v1/appointments/me")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].status").value("INVOICED"))
@@ -173,6 +167,10 @@ public class AppointmentLifecycleIntegrationTest {
     }
 
     private void invoicedVisit() throws Exception {
+        invoicedVisit(null);
+    }
+
+    private void invoicedVisit(MockMultipartFile file) throws Exception {
         var specId = specializationIdOf("Cardiologia");
         api.postAs(adminToken, "/api/v1/doctors", new CreateDoctorRequest(DOCTOR_EMAIL, ApiTestClient.PASSWORD, "Giulia", "Verdi",  specId, true))
                 .andExpect(status().isOk());
@@ -183,7 +181,7 @@ public class AppointmentLifecycleIntegrationTest {
         patientToken = api.registerPatient(PATIENT_EMAIL);
         appointmentId = api.book(patientToken, slotId);
         api.postAs(doctorToken, "/api/v1/appointments/"+appointmentId+"/complete", null).andExpect(status().isOk());
-        api.postAs(doctorToken, "/api/v1/medical-reports", new CreateMedicalReportRequest(appointmentId, DIAGNOSIS, null))
+        api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, DIAGNOSIS), file)
                 .andExpect(status().isOk());
     }
 
@@ -212,6 +210,36 @@ public class AppointmentLifecycleIntegrationTest {
         api.postAs(patientToken, "/api/v1/appointments/" + first + "/cancel", null).andExpect(status().isOk());
         api.postAs(patientToken, "/api/v1/appointments", new CreateAppointmentRequest(slotIds.get(1)))
                 .andExpect(status().isOk());
+    }
+
+    @Test
+    void attachment_travelsFromTheDoctorToThePatientAndToTheCaregiver_andSurvivesTheErasure() throws Exception {
+        invoicedVisit(TestFiles.pdf());
+        var appointmentOfTheVisit = json(api.getAs(patientToken, "/api/v1/appointments/me")).get(0).get("id").asLong();
+        var report = json(api.getAs(patientToken, "/api/v1/medical-reports?appointmentId=" + appointmentOfTheVisit)
+                .andExpect(jsonPath("$.attachment.contentType").value("application/pdf")));
+        var reportNumber = report.get("id").asLong();
+
+        // the patient downloads exactly what the doctor uploaded
+        var downloaded = api.getAs(patientToken, "/api/v1/medical-reports/" + reportNumber + "/attachment")
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
+        assertThat(downloaded).isEqualTo(TestFiles.pdfBytes());
+
+        // the caregiver, with a link that includes the attachments, too
+        var token = json(api.postAs(patientToken, "/api/v1/report-delegations",
+                        new CreateReportDelegationRequest("Luigi Neri", "luigi.neri@example.com", null, true))
+                .andExpect(status().isOk())).get("token").asString();
+        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports/" + reportNumber + "/attachment"))
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(TestFiles.pdfBytes()));
+
+        // after the erasure the patient and the link are dead, the file stays for the doctor
+        api.postAs(patientToken, "/api/v1/patients/me/anonymize", null).andExpect(status().isNoContent());
+        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports/" + reportNumber + "/attachment"))
+                .andExpect(status().isNotFound());
+        api.getAs(doctorToken, "/api/v1/medical-reports/" + reportNumber + "/attachment")
+                .andExpect(status().isOk())
+                .andExpect(content().bytes(TestFiles.pdfBytes()));
     }
 
     private long specializationIdOf(String name) throws Exception {

@@ -4,6 +4,7 @@ import com.dc.medapp.medappbe.common.exception.*;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -63,5 +64,23 @@ public class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("CONCURRENT_MODIFICATION");
+    }
+
+    @Test
+    void handleFileTooLargeException_returns413() {
+        var response = handler.handleFileTooLargeException(new FileTooLargeException("troppo grande"));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(413);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("FILE_TOO_LARGE");
+    }
+
+    @Test
+    void handleFileTooLarge_alsoAnswerForTheLimitOfTheServer() {
+        var response = handler.handleFileTooLargeException(new MaxUploadSizeExceededException(10L * 1024 * 1024));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(413);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().code()).isEqualTo("FILE_TOO_LARGE");
     }
 }

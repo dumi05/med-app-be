@@ -34,6 +34,9 @@ public class ReportDelegationEntity extends AuditableEntity {
     @Column(name = "revoked", nullable = false)
     private boolean revoked;
 
+    @Column(name = "include_attachments")
+    private boolean includeAttachments;
+
     public boolean isActive(LocalDate date) {
         return !revoked && (expiresAt == null || !expiresAt.isBefore(date));
     }

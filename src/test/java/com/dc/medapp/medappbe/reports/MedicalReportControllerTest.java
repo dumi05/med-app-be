@@ -22,6 +22,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,8 +36,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static com.dc.medapp.medappbe.billing.BillingService.STANDARD_VISIT_TYPE;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -218,7 +218,7 @@ public class MedicalReportControllerTest {
     // Helpers
 
     private @NonNull CreateMedicalReportRequest createMedicalReportReq(Long completedAppointmentId, String diagnosis) {
-        return new CreateMedicalReportRequest(completedAppointmentId, diagnosis, null);
+        return new CreateMedicalReportRequest(completedAppointmentId, diagnosis);
     }
 
     private DoctorEntity createDoctor(String email) {
@@ -281,16 +281,23 @@ public class MedicalReportControllerTest {
     }
 
     private ResultActions postReport(String token, CreateMedicalReportRequest req) throws Exception {
-        return mockMvc.perform(post("/api/v1/medical-reports")
-                .header("Authorization", "Bearer " + token)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(req)));
+        return postReport(token, req, null);
     }
 
     private long writeReport() throws Exception {
-        var json = postReport(doctorToken, createMedicalReportReq(completedAppointmentId, "Nessun risultato."))
+        var json = postReport(doctorToken, createMedicalReportReq(completedAppointmentId, "Nessun risultato."), null)
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(json).get("id").asLong();
+    }
+
+    private ResultActions postReport(String token, CreateMedicalReportRequest req, MockMultipartFile file) throws Exception {
+        var request = multipart("/api/v1/medical-reports")
+                .file(new MockMultipartFile("report", "", "application/json", objectMapper.writeValueAsBytes(req)))
+                .header("Authorization", "Bearer " + token);
+        if (file != null) {
+            request.file(file);
+        }
+        return mockMvc.perform(request);
     }
 }

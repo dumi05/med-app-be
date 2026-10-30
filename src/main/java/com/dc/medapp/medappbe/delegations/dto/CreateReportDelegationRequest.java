@@ -8,6 +8,7 @@ import java.time.LocalDate;
 public record CreateReportDelegationRequest(
         @NotBlank String delegateName,
         @NotBlank @Email String delegateEmail,
-        LocalDate expiresAt
+        LocalDate expiresAt,
+        Boolean includeAttachments
 ) {
 }

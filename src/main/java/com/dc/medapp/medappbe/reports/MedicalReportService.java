@@ -7,29 +7,40 @@ import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.billing.BillingService;
+import com.dc.medapp.medappbe.common.exception.FileTooLargeException;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
 import com.dc.medapp.medappbe.delegations.DoctorDelegationService;
+import com.dc.medapp.medappbe.reports.dto.AttachmentDownload;
 import com.dc.medapp.medappbe.security.ProfileResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.time.Instant;
 
 @Service
 @RequiredArgsConstructor
 public class MedicalReportService {
+
+    public static final long MAX_ATTACHMENT_SIZE = 10L * 1024 * 1024;
+
     private final MedicalReportRepository medicalReportRepository;
     private final AppointmentRepository appointmentRepository;
     private final ProfileResolver profileResolver;
     private final DoctorDelegationService delegationService;
     private final BillingService billingService;
+    private final AttachmentStorage attachmentStorage;
 
     @Transactional
     @Audited(action = "WRITE_REPORT", entity = "MedicalReport")
-    public MedicalReportEntity createReport(UserEntity user, Long appointmentId, String diagnosis, String attachmentUrl) {
+    public MedicalReportEntity createReport(UserEntity user, Long appointmentId, String diagnosis, MultipartFile file) {
         var appointment = findAppointmentOrThrow(appointmentId);
 
         if(!isAssignedDoctor(appointment, user)){
@@ -40,21 +51,84 @@ public class MedicalReportService {
             throw new InvalidStateTransitionException("Impossibile redigere il report in stato " + appointment.getStatus());
         }
 
-        var report = MedicalReportEntity.builder()
-                .appointment(appointment)
-                .attachmentUrl(attachmentUrl)
-                .diagnosisText(diagnosis)
-                .completedAt(Instant.now())
-                .build();
+        var type = file == null ? null : checkFile(file);
+        var storedName = file == null ? null : store(file);
 
-        var result = medicalReportRepository.save(report);
+        try{
+            var report = MedicalReportEntity.builder()
+                    .appointment(appointment)
+                    .attachmentStoredName(storedName)
+                    .attachmentContentType(type == null ? null : type.getContentType())
+                    .attachmentSize(file == null ? null : file.getSize())
+                    .diagnosisText(diagnosis)
+                    .completedAt(Instant.now())
+                    .build();
 
-        appointment.setStatus(AppointmentStatus.REPORTED);
-        appointment.setReportedAt(Instant.now());
+            var result = medicalReportRepository.save(report);
 
-        billingService.issueInvoiceItem(appointment);
+            appointment.setStatus(AppointmentStatus.REPORTED);
+            appointment.setReportedAt(Instant.now());
 
-        return result;
+            billingService.issueInvoiceItem(appointment);
+
+            return result;
+        } catch (RuntimeException e) {
+            if(storedName != null) {
+                attachmentStorage.delete(storedName);
+            }
+            throw e;
+        }
+
+    }
+
+    @Transactional(readOnly = true)
+    @Audited(action = "READ_ATTACHMENT", entity = "MedicalReport", idArg = 1)
+    public AttachmentDownload getAttachment(UserEntity user, Long reportId) {
+        var report = medicalReportRepository.findById(reportId).orElseThrow(() -> new ResourceNotFoundException("Report non trovato: " + reportId));
+        checkReadAccess(report.getAppointment(), user);
+        return downloadOf(report);
+    }
+
+    public AttachmentDownload downloadOf(MedicalReportEntity report) {
+        if(!report.hasAttachment()) {
+            throw new ResourceNotFoundException("Il referto non ha un allegato.");
+        }
+        var type = AttachmentType.fromContentType(report.getAttachmentContentType()).orElseThrow(() -> new IllegalStateException("Tipo allegato non riconosciuto: " + report.getId()));
+        return new AttachmentDownload(attachmentStorage.open(report.getAttachmentStoredName()), type.getContentType(), report.getAttachmentSize(), "referto-"+report.getId()+"."+type.getExtension());
+    }
+
+    private AttachmentType checkFile(MultipartFile file) {
+        if(file.isEmpty()) throw new IllegalArgumentException("Il file è vuoto.");
+
+        if(file.getSize() > MAX_ATTACHMENT_SIZE) throw new FileTooLargeException("Il file supera la dimensione massima di 10 MB.");
+
+        byte[] head;
+        try(var i = file.getInputStream()) {
+            head = i.readNBytes(AttachmentType.HEAD_SIZE);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read the uploaded file.", e);
+        }
+        return AttachmentType.detect(head).orElseThrow(() -> new IllegalArgumentException("Sono ammessi solo file PDF, JPEG, PNG."));
+    }
+
+    private String store(MultipartFile file){
+        String storedName;
+        try(var i = file.getInputStream()) {
+            storedName= attachmentStorage.save(i);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Cannot read the uploaded file.", e);
+        }
+        if(TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCompletion(int status) {
+                    if(status != STATUS_COMMITTED) {
+                        attachmentStorage.delete(storedName);
+                    }
+                }
+            });
+        }
+        return storedName;
     }
 
     @Transactional(readOnly = true)

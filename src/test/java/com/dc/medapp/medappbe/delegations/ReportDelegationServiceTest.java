@@ -82,7 +82,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void create_generateAnActiveDelegationWithAToken() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
 
         assertThat(delegation.getId()).isNotNull();
         assertThat(delegation.getToken()).isNotBlank();
@@ -93,25 +93,25 @@ public class ReportDelegationServiceTest {
 
     @Test
     void create_generatesADifferentTokenEachTime() {
-        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null);
-        var second = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null);
+        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
+        var second = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
 
         assertThat(first.getToken()).isNotEqualTo(second.getToken());
     }
 
     @Test
     void create_throwsIllegalArgumentException_whenTheExpiryIsInThePast() {
-        assertThrows(IllegalArgumentException.class, () -> service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", LocalDate.now().minusDays(1)));
+        assertThrows(IllegalArgumentException.class, () -> service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", LocalDate.now().minusDays(1), false));
     }
 
     @Test
     void create_throwsResourceNotFoundException_whenAPatientDoesNotExists() {
-        assertThrows(ResourceNotFoundException.class, () -> service.create(999_999L, "Luigi Rossi", "luigi@example.it", null));
+        assertThrows(ResourceNotFoundException.class, () -> service.create(999_999L, "Luigi Rossi", "luigi@example.it", null, false));
     }
 
     @Test
     void openByToken_returnTheReportsOfThePatient() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
         var delegationOpened = service.openByToken(delegation.getToken());
         assertThat(service.reportsOf(delegationOpened)).hasSize(1);
     }
@@ -119,13 +119,13 @@ public class ReportDelegationServiceTest {
     @Test
     void reportsOf_doesNotReturnTheReportOfAnotherPatient() {
         var other = createPatient("other-patient@test.it");
-        var delegation = service.create(other.getId(), "Gigi Neri", "gigi@neri.com", null);
+        var delegation = service.create(other.getId(), "Gigi Neri", "gigi@neri.com", null,false);
         assertThat(service.reportsOf(service.openByToken(delegation.getToken()))).isEmpty();
     }
 
     @Test
     void openByToken_works_untilTheEndOfTheExpiryDate() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", LocalDate.now());
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", LocalDate.now(), false);
         assertThat(service.openByToken(delegation.getToken())).isNotNull();
     }
 
@@ -136,7 +136,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void openByToken_throwsResourceNotFoundException_whenDelegationIsREvoked() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
         service.revoke(delegation.getId(), patient.getId());
 
         assertThrows(ResourceNotFoundException.class, () -> service.openByToken(delegation.getToken()));
@@ -158,7 +158,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void openByToken_writesTheDelegationIdInTheAccessLog_whenItSucceeds() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
 
         service.openByToken(delegation.getToken());
 
@@ -181,7 +181,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void revoke_marksTheDelegationAsRevoked() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
 
         var revoked = service.revoke(delegation.getId(), patient.getId());
 
@@ -191,7 +191,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void revoke_twice_isNotAnError() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
         service.revoke(delegation.getId(), patient.getId());
 
         assertThat(service.revoke(delegation.getId(), patient.getId()).isRevoked()).isTrue();
@@ -199,7 +199,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void revoke_throwsUnauthorizedAccessException_whenTheDelegationBelongsToAnotherPatient() {
-        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null);
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
         var other = createPatient("repdel.intruder@test.it");
 
         assertThrows(UnauthorizedAccessException.class, () -> service.revoke(delegation.getId(), other.getId()));
@@ -213,9 +213,9 @@ public class ReportDelegationServiceTest {
 
     @Test
     void findByPatient_returnsOnlyTheDelegationsOfThatPatient_newestFirst() {
-        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null);
-        var second = service.create(patient.getId(), "Anna Rossi", "anna@example.com", null);
-        service.create(createPatient("repdel.other2@test.it").getId(), "Altro", "altro@example.com", null);
+        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
+        var second = service.create(patient.getId(), "Anna Rossi", "anna@example.com", null, false);
+        service.create(createPatient("repdel.other2@test.it").getId(), "Altro", "altro@example.com", null, false);
 
         assertThat(service.findByPatient(patient.getId())).extracting(ReportDelegationEntity::getId)
                 .containsExactly(second.getId(), first.getId());
@@ -225,8 +225,8 @@ public class ReportDelegationServiceTest {
 
     @Test
     void anonymizingThePatient_revokesAllTheirDelegations() {
-        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null);
-        var second = service.create(patient.getId(), "Anna Rossi", "anna@example.com", null);
+        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
+        var second = service.create(patient.getId(), "Anna Rossi", "anna@example.com", null, false);
 
         patientService.anonymize(patient.getId());
 

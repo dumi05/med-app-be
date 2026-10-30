@@ -8,7 +8,7 @@ public record MedicalReportResponse(
         Long id,
         Long appointmentId,
         String diagnosisText,
-        String attachmentUrl,
+        AttachmentInfo attachment,
         Instant completedAt
 ) {
     public static MedicalReportResponse fromEntity(MedicalReportEntity entity) {
@@ -16,7 +16,7 @@ public record MedicalReportResponse(
                 entity.getId(),
                 entity.getAppointment().getId(),
                 entity.getDiagnosisText(),
-                entity.getAttachmentUrl(),
+                entity.hasAttachment() ? new AttachmentInfo(entity.getAttachmentContentType(), entity.getAttachmentSize()) : null,
                 entity.getCompletedAt()
         );
     }

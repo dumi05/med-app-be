@@ -4,9 +4,11 @@ import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.delegations.dto.CreateReportDelegationRequest;
 import com.dc.medapp.medappbe.delegations.dto.ReportDelegationResponse;
 import com.dc.medapp.medappbe.delegations.dto.SharedMedicalReportResponse;
+import com.dc.medapp.medappbe.reports.AttachmentHttp;
 import com.dc.medapp.medappbe.security.ProfileResolver;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.Resource;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,7 +28,7 @@ public class ReportDelegationController {
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<ReportDelegationResponse> create(@AuthenticationPrincipal UserEntity user,
                                                            @Valid @RequestBody CreateReportDelegationRequest req) {
-        return ResponseEntity.ok(ReportDelegationResponse.fromEntity(service.create(profileResolver.patientIdOf(user), req.delegateName(), req.delegateEmail(), req.expiresAt())));
+        return ResponseEntity.ok(ReportDelegationResponse.fromEntity(service.create(profileResolver.patientIdOf(user), req.delegateName(), req.delegateEmail(), req.expiresAt(), Boolean.TRUE.equals(req.includeAttachments()))));
     }
 
     @GetMapping("/me")
@@ -51,7 +53,13 @@ public class ReportDelegationController {
     public ResponseEntity<List<SharedMedicalReportResponse>> reportsByToken(@PathVariable String token) {
         var delegation = service.openByToken(token);
         return ResponseEntity.ok(
-            service.reportsOf(delegation).stream().map(SharedMedicalReportResponse::fromEntity).toList()
+            service.reportsOf(delegation).stream().map(s -> SharedMedicalReportResponse.fromEntity(s, delegation.isIncludeAttachments())).toList()
         );
+    }
+
+    @GetMapping("/{token}/medical-reports/{reportId}/attachment")
+    public ResponseEntity<Resource> attachmentByToken(@PathVariable String token, @PathVariable Long reportId) {
+        var delegation = service.openForAttachments(token);
+        return AttachmentHttp.asDownload(service.attachmentOf(delegation, reportId));
     }
 }

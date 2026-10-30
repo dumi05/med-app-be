@@ -8,6 +8,7 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
 import java.time.Instant;
 import java.util.stream.Collectors;
@@ -69,6 +70,11 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(AppointmentOverlapException.class)
     public ResponseEntity<ErrorResponse> handleAppointmentOverlapException(AppointmentOverlapException ex) {
         return build(HttpStatus.CONFLICT, "APPOINTMENT_OVERLAP", ex.getMessage());
+    }
+
+    @ExceptionHandler({FileTooLargeException.class, MaxUploadSizeExceededException.class})
+    public ResponseEntity<ErrorResponse> handleFileTooLargeException(Exception ex) {
+        return build(HttpStatus.valueOf(413), "FILE_TOO_LARGE", "Il file supera la dimensione massima di 10 MB");
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {

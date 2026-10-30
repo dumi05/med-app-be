@@ -15,3 +15,5 @@ jwt:
 
 app:
   admin-psw: admin123
+  storage:
+    dir: target/test-attachments

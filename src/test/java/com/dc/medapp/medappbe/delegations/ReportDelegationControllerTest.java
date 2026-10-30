@@ -181,12 +181,14 @@ public class ReportDelegationControllerTest {
     }
 
     @Test
-    void thePublicResponse_doesNotExposeInternalIds() throws Exception {
+    void thePublicResponse_exposeOnlyTheNumberOfTheReport_notTheAppointmentNorThePatient() throws Exception {
         var token = createDelegationToken(patientToken);
 
         mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports"))
-                .andExpect(jsonPath("$[0].id").doesNotExist())
-                .andExpect(jsonPath("$[0].appointmentId").doesNotExist());
+                .andExpect(jsonPath("$[0].id").isNumber())
+                .andExpect(jsonPath("$[0].appointmentId").doesNotExist())
+                .andExpect(jsonPath("$[0].patientId").doesNotExist())
+                .andExpect(jsonPath("$[0].attachmentAvailable").value(false));
     }
 
     @Test
@@ -227,7 +229,7 @@ public class ReportDelegationControllerTest {
     // Helpers
 
     private CreateReportDelegationRequest request(String name, String email, LocalDate expiresAt) {
-        return new CreateReportDelegationRequest(name, email, expiresAt);
+        return new CreateReportDelegationRequest(name, email, expiresAt, false);
     }
 
     private long createDelegation(String token) throws Exception {
@@ -247,7 +249,7 @@ public class ReportDelegationControllerTest {
                 .doctor(doctor).startTime(LocalDateTime.now().plusDays(1)).durationMinutes(30).booked(false).build());
         var appointmentId = api.book(patientToken, slot.getId());
         api.postAs(doctorToken, "/api/v1/appointments/" + appointmentId + "/complete", null).andExpect(status().isOk());
-        api.postAs(doctorToken, "/api/v1/medical-reports", new CreateMedicalReportRequest(appointmentId, "Nessun risultato.", null))
+        api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, "Nessun risultato."), null)
                 .andExpect(status().isOk());
     }
 }
