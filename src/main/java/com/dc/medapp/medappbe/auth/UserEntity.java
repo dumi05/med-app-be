@@ -27,6 +27,14 @@ public class UserEntity extends BaseEntity {
     @Column(nullable = false, columnDefinition = "boolean default true")
     private boolean enabled = true;
 
+    @Builder.Default
+    @Column(name = "token_version", nullable = false, columnDefinition = "integer default 0")
+    private int tokenVersion = 0;
+
+    @Builder.Default
+    @Column(name = "must_change_password", nullable = false, columnDefinition = "boolean default false")
+    private boolean mustChangePassword = false;
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();

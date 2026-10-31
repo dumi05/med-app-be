@@ -17,8 +17,8 @@ public class OpenApiConfig {
     public OpenAPI studioMedicoOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
-                        .title("Studio Medico API")
-                        .description("API REST per la gestione di prenotazioni, referti e fatturazione di uno studio medico associato")
+                        .title("Studio Medico La Mole API")
+                        .description("API REST dello Studio medico La Mole (Torino) per la gestione di prenotazioni, referti e fatturazione di uno studio medico associato")
                         .version("v1"))
                 .addSecurityItem(new SecurityRequirement().addList(BEARER_AUTH))
                 .components(new Components().addSecuritySchemes(BEARER_AUTH,

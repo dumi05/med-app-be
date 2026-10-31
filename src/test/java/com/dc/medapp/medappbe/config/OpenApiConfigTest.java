@@ -23,6 +23,6 @@ public class OpenApiConfigTest {
     void apiDocs_checkThatIsAvailableWithoutAuthentication() throws Exception {
         mockMvc.perform(get("/v3/api-docs"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.info.title").value("Studio Medico API"));
+                .andExpect(jsonPath("$.info.title").value("Studio Medico La Mole API"));
     }
 }

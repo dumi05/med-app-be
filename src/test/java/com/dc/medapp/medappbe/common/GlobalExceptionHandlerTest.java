@@ -6,6 +6,9 @@ import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.multipart.MaxUploadSizeExceededException;
 
+import java.time.Duration;
+import java.util.List;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 public class GlobalExceptionHandlerTest {
@@ -82,5 +85,46 @@ public class GlobalExceptionHandlerTest {
         assertThat(response.getStatusCode().value()).isEqualTo(413);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody().code()).isEqualTo("FILE_TOO_LARGE");
+    }
+
+    @Test
+    void handleWeakPassword_returns400WithTheReasons() {
+        var response = handler.handleWeakPasswordException(new WeakPasswordException(List.of("Prima.", "Seconda.")));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().code()).isEqualTo("WEAK_PASSWORD");
+        assertThat(response.getBody().message()).isEqualTo("Prima. Seconda.");
+    }
+
+    @Test
+    void handleInvalidCurrentPassword_returns400() {
+        var response = handler.handleInvalidCurrentPasswordException(new InvalidCurrentPasswordException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().code()).isEqualTo("INVALID_CURRENT_PASSWORD");
+    }
+
+    @Test
+    void handleAccountLocked_returns429WithRetryAfter_roundedUp() {
+        var response = handler.handleAccountLockedException(new AccountLockedException(Duration.ofMillis(1500)));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(429);
+        assertThat(response.getHeaders().getFirst("Retry-After")).isEqualTo("2");
+        assertThat(response.getBody().code()).isEqualTo("ACCOUNT_LOCKED");
+    }
+
+    @Test
+    void handleAccountLocked_neverAsksToWaitLessThanASecond() {
+        var response = handler.handleAccountLockedException(new AccountLockedException(Duration.ofMillis(100)));
+
+        assertThat(response.getHeaders().getFirst("Retry-After")).isEqualTo("1");
+    }
+
+    @Test
+    void handleAccountLocked_saysTheMinutesInItalian() {
+        assertThat(handler.handleAccountLockedException(new AccountLockedException(Duration.ofSeconds(60))).getBody().message())
+                .endsWith("1 minuto.");
+        assertThat(handler.handleAccountLockedException(new AccountLockedException(Duration.ofSeconds(61))).getBody().message())
+                .endsWith("2 minuti.");
     }
 }

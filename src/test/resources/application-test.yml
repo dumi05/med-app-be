@@ -17,3 +17,6 @@ app:
   admin-psw: admin123
   storage:
     dir: target/test-attachments
+  security:
+    max-failed-logins: 5
+    lockout-minutes: 15

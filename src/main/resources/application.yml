@@ -25,6 +25,9 @@ app:
   admin-psw: ${ADMIN_PSW:admin123}
   storage:
     dir: ${STORAGE_DIR:./data/attachments}
+  security:
+    max-failed-logins: ${MAX_FAILED_LOGINS:5}
+    lockout-minutes: ${LOCKOUT_MINUTES:15}
 
 springdoc:
   swagger-ui:

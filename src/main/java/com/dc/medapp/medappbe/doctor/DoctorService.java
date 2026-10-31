@@ -40,7 +40,7 @@ public class DoctorService {
         if(userRepository.existsByEmailIgnoreCase(email)) {
             throw new IllegalArgumentException("Email già in uso: " + email);
         }
-        var user = userRepository.save(UserEntity.builder().email(email).passwordHash(passwordEncoder.encode(password)).role(Role.DOCTOR).build());
+        var user = userRepository.save(UserEntity.builder().email(email).passwordHash(passwordEncoder.encode(password)).role(Role.DOCTOR).mustChangePassword(true).build());
 
         var doctor = DoctorEntity.builder().user(user).firstName(firstName).lastName(lastName).specialization(specialization).delegationConsent(delegationConsent).build();
 

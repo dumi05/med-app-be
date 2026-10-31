@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.common.exception;
 
 import com.dc.medapp.medappbe.common.ErrorResponse;
 import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -80,6 +81,21 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(WeakPasswordException.class)
     public ResponseEntity<ErrorResponse> handleWeakPasswordException(WeakPasswordException ex) {
         return build(HttpStatus.BAD_REQUEST, "WEAK_PASSWORD", ex.getMessage());
+    }
+
+    @ExceptionHandler(AccountLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccountLockedException(AccountLockedException ex){
+        long seconds = ex.retryAfterSeconds();
+        long minutes = (seconds+59)/60;
+        var message = "Troppi tentativi di accesso falliti. Riprova tra " + minutes + (minutes == 1 ? " minuto." : " minuti.");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
+                .body(new ErrorResponse("ACCOUNT_LOCKED", message, Instant.now()));
+    }
+
+    @ExceptionHandler(InvalidCurrentPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidCurrentPasswordException(InvalidCurrentPasswordException ex) {
+        return build(HttpStatus.BAD_REQUEST, "INVALID_CURRENT_PASSWORD", ex.getMessage());
     }
 
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {

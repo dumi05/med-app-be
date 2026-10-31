@@ -1,6 +1,7 @@
 package com.dc.medapp.medappbe.auth;
 
 import com.dc.medapp.medappbe.auth.dto.AuthResponse;
+import com.dc.medapp.medappbe.auth.dto.ChangePasswordRequest;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
 import jakarta.validation.Valid;
@@ -28,6 +29,12 @@ public class AuthController {
 
     @GetMapping("/me")
     public ResponseEntity<AuthResponse> me(@AuthenticationPrincipal UserEntity user) {
-        return ResponseEntity.ok(new AuthResponse(null, user.getEmail(), user.getRole()));
+        return ResponseEntity.ok(new AuthResponse(null, user.getEmail(), user.getRole(), user.isMustChangePassword()));
+    }
+
+    @PostMapping("/change-password")
+    public ResponseEntity<AuthResponse> changePassword(@AuthenticationPrincipal UserEntity user,
+                                                       @Valid @RequestBody ChangePasswordRequest request) {
+        return ResponseEntity.ok(authService.changePassword(user, request));
     }
 }

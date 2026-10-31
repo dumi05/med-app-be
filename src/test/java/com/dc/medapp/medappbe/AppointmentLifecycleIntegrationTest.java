@@ -2,7 +2,6 @@ package com.dc.medapp.medappbe;
 
 import com.dc.medapp.medappbe.appointments.dto.CreateAppointmentRequest;
 import com.dc.medapp.medappbe.auth.UserRepository;
-import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.delegations.dto.CreateReportDelegationRequest;
 import com.dc.medapp.medappbe.doctor.DoctorRepository;
 import com.dc.medapp.medappbe.doctor.dto.CreateDoctorRequest;
@@ -16,7 +15,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -33,7 +31,6 @@ import java.util.ArrayList;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
@@ -68,7 +65,7 @@ public class AppointmentLifecycleIntegrationTest {
     @BeforeEach
     void setUp() throws Exception {
         api = new ApiTestClient(mockMvc, objectMapper, userRepository, passwordEncoder, doctorRepository);
-        adminToken = loginAs(ADMIN_EMAIL, ADMIN_PASSWORD);
+        adminToken = api.firstLogin(ADMIN_EMAIL, ADMIN_PASSWORD);
     }
 
     @Test
@@ -77,7 +74,7 @@ public class AppointmentLifecycleIntegrationTest {
         var doctorId = json(api.postAs(adminToken, "/api/v1/doctors", new CreateDoctorRequest(DOCTOR_EMAIL, ApiTestClient.PASSWORD, "Giulia", "Verdi", specializationId, true))
                 .andExpect(status().isOk())).get("id").asLong();
 
-        doctorToken = api.login(DOCTOR_EMAIL);
+        doctorToken = api.firstLogin(DOCTOR_EMAIL, ApiTestClient.PASSWORD);
         var startTime = LocalDateTime.now().plusDays(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         var slotId = json(api.postAs(doctorToken, "/api/v1/schedule/slot", new SlotRequest(null, startTime, 30))
                 .andExpect(status().isOk())
@@ -174,7 +171,7 @@ public class AppointmentLifecycleIntegrationTest {
         var specId = specializationIdOf("Cardiologia");
         api.postAs(adminToken, "/api/v1/doctors", new CreateDoctorRequest(DOCTOR_EMAIL, ApiTestClient.PASSWORD, "Giulia", "Verdi",  specId, true))
                 .andExpect(status().isOk());
-        doctorToken = api.login(DOCTOR_EMAIL);
+        doctorToken = api.firstLogin(DOCTOR_EMAIL, ApiTestClient.PASSWORD);
         var startTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
         var slotId = json(api.postAs(doctorToken, "/api/v1/schedule/slot", new SlotRequest(null, startTime, 30))
                 .andExpect(status().isOk())).get("id").asLong();
@@ -195,7 +192,7 @@ public class AppointmentLifecycleIntegrationTest {
             api.postAs(adminToken, "/api/v1/doctors",
                             new CreateDoctorRequest(email, ApiTestClient.PASSWORD, "Giulia", "Verdi", specializationId, true))
                     .andExpect(status().isOk());
-            var created = json(api.postAs(api.login(email), "/api/v1/schedule/slots/bulk",
+            var created = json(api.postAs(api.firstLogin(email, ApiTestClient.PASSWORD), "/api/v1/schedule/slots/bulk",
                             new BulkSlotRequest(null, date, LocalTime.of(10, 0), LocalTime.of(10, 30), 30))
                     .andExpect(status().isOk()));
             slotIds.add(created.get(0).get("id").asLong());
@@ -253,17 +250,7 @@ public class AppointmentLifecycleIntegrationTest {
         throw new IllegalArgumentException("Specialization with name " + name + " not found");
     }
 
-    private String loginAs(String adminEmail, String adminPassword) throws Exception {
-        var response = mockMvc.perform(post("/api/v1/auth/login")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(new LoginRequest(adminEmail, adminPassword))))
-                .andExpect(status().isOk());
-        return json(response).get("token").asString();
-    }
-
     private JsonNode json(ResultActions actions) throws Exception {
         return objectMapper.readTree(actions.andReturn().getResponse().getContentAsString());
     }
-
-
 }

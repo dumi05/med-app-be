@@ -4,6 +4,7 @@ import com.dc.medapp.medappbe.appointments.dto.CreateAppointmentRequest;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
+import com.dc.medapp.medappbe.auth.dto.ChangePasswordRequest;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class ApiTestClient {
 
     public static final String PASSWORD = "Tavolo-Viola-Nuvola-42";
+    public static final String CHANGED_PASSWORD = "Nuvola-Viola-Tavolo-877";
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
@@ -64,6 +66,22 @@ public class ApiTestClient {
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(json).get("token").asString();
+    }
+
+    public String firstLogin(String email, String temporaryPassword) throws Exception {
+        var login = objectMapper.readTree(mockMvc.perform(post("/api/v1/auth/login")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(new LoginRequest(email, temporaryPassword))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString());
+        if(!login.get("mustChangePassword").asBoolean()) {
+            return login.get("token").asString();
+        }
+        var changed = postAs(login.get("token").asString(), "/api/v1/auth/change-password",
+                        new ChangePasswordRequest(temporaryPassword, CHANGED_PASSWORD))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(changed).get("token").asString();
     }
 
     public long book(String token, Long slotId) throws Exception {

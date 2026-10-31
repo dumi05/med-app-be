@@ -39,6 +39,7 @@ public class DataSeeder implements CommandLineRunner {
                     .email("admin@studio-medico.it")
                     .passwordHash(passwordEncoder.encode(adminPassword))
                     .role(Role.ADMIN)
+                    .mustChangePassword(true)
                     .build());
         }
         if (priceListRepository.count() == 0) {

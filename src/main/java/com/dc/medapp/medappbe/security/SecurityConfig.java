@@ -16,7 +16,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -35,6 +34,7 @@ public class SecurityConfig {
     };
     private final JwtAuthFilter jwtAuthFilter;
     private final RestAuthenticationEntryPoint restAuthenticationEntryPoint;
+    private final PasswordChangeRequiredFilter passwordChangeRequiredFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -52,7 +52,8 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(restAuthenticationEntryPoint))
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterAfter(passwordChangeRequiredFilter, JwtAuthFilter.class);
 
         return http.build();
     }
