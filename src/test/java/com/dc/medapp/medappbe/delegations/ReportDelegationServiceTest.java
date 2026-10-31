@@ -81,6 +81,13 @@ public class ReportDelegationServiceTest {
     }
 
     @Test
+    void create_storesTheEmailOfTheDelegateInLowerCase() {
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "  Luigi@Example.COM ", null, false);
+
+        assertThat(delegation.getDelegateEmail()).isEqualTo("luigi@example.com");
+    }
+
+    @Test
     void create_generateAnActiveDelegationWithAToken() {
         var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.com", null, false);
 

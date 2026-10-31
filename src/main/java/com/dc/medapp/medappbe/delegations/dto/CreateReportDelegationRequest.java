@@ -1,13 +1,13 @@
 package com.dc.medapp.medappbe.delegations.dto;
 
-import jakarta.validation.constraints.Email;
+import com.dc.medapp.medappbe.common.validation.ValidEmail;
 import jakarta.validation.constraints.NotBlank;
 
 import java.time.LocalDate;
 
 public record CreateReportDelegationRequest(
         @NotBlank String delegateName,
-        @NotBlank @Email String delegateEmail,
+        @NotBlank @ValidEmail String delegateEmail,
         LocalDate expiresAt,
         Boolean includeAttachments
 ) {

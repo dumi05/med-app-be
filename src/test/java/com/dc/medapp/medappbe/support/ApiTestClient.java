@@ -14,7 +14,6 @@ import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.ResultActions;
-import org.springframework.web.multipart.MultipartFile;
 import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
@@ -24,7 +23,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 public class ApiTestClient {
 
-    public static final String PASSWORD = "password123";
+    public static final String PASSWORD = "Tavolo-Viola-Nuvola-42";
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;

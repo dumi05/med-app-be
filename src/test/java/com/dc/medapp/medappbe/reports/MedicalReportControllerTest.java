@@ -36,6 +36,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static com.dc.medapp.medappbe.billing.BillingService.STANDARD_VISIT_TYPE;
+import static com.dc.medapp.medappbe.support.ApiTestClient.PASSWORD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -46,7 +47,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @Transactional
 public class MedicalReportControllerTest {
 
-    private static final String PASSWORD = "password";
     private static final String DOC_EMAIL = "doc@mail.et";
     private static final String PATIENT_MAIL = "pat@mail.co";
 
@@ -222,12 +222,12 @@ public class MedicalReportControllerTest {
     }
 
     private DoctorEntity createDoctor(String email) {
-        var user = userRepository.save(UserEntity.builder().email(email).role(Role.DOCTOR).passwordHash(passwordEncoder.encode("password")).createdAt(Instant.now()).build());
+        var user = userRepository.save(UserEntity.builder().email(email).role(Role.DOCTOR).passwordHash(passwordEncoder.encode(PASSWORD)).createdAt(Instant.now()).build());
         return doctorRepository.save(DoctorEntity.builder().user(user).specialization(specialization).firstName("Anotnio").lastName("Tonio").build());
     }
 
     private String registerPatient(String mail) throws Exception {
-        var request = new RegisterRequest(mail, "myPassword26!", "Luca", "Amauri", LocalDate.of(1994,5,2), true, "v1.0");
+        var request = new RegisterRequest(mail, PASSWORD, "Luca", "Amauri", LocalDate.of(1994,5,2), true, "v1.0");
         var json = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType("application/json").content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
@@ -239,7 +239,7 @@ public class MedicalReportControllerTest {
         var json = mockMvc.perform(
                         post("/api/v1/auth/login")
                                 .contentType("application/json")
-                                .content(objectMapper.writeValueAsString(new LoginRequest(mail, "password"))))
+                                .content(objectMapper.writeValueAsString(new LoginRequest(mail, PASSWORD))))
                 .andExpect(status().isOk())
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(json).get("token").asString();

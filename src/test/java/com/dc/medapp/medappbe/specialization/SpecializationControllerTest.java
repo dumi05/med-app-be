@@ -12,6 +12,7 @@ import tools.jackson.databind.ObjectMapper;
 
 import java.time.LocalDate;
 
+import static com.dc.medapp.medappbe.support.ApiTestClient.PASSWORD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -44,7 +45,7 @@ public class SpecializationControllerTest {
     }
 
     private String registerPatient(String mail) throws Exception {
-        var request = new RegisterRequest(mail, "myPassword26!", "Luca", "Amauri", LocalDate.of(1994,5,2), true, "v1.0");
+        var request = new RegisterRequest(mail, PASSWORD, "Luca", "Amauri", LocalDate.of(1994,5,2), true, "v1.0");
         var json = mockMvc.perform(post("/api/v1/auth/register")
                         .contentType("application/json").content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())

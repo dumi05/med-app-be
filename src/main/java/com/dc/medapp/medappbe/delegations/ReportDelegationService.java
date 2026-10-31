@@ -3,6 +3,7 @@ package com.dc.medapp.medappbe.delegations;
 import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
+import com.dc.medapp.medappbe.common.validation.EmailPolicy;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.reports.MedicalReportEntity;
 import com.dc.medapp.medappbe.reports.MedicalReportRepository;
@@ -36,7 +37,7 @@ public class ReportDelegationService {
 
         return reportDelegationRepository.save(
                 ReportDelegationEntity.builder()
-                        .delegateEmail(delegateEmail)
+                        .delegateEmail(EmailPolicy.normalize(delegateEmail))
                         .delegateName(delegateName)
                         .expiresAt(expiresAt)
                         .patient(patient)

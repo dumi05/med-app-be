@@ -1,11 +1,11 @@
 package com.dc.medapp.medappbe.auth;
 
-import java.util.Optional;
-
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
+
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,7 +17,7 @@ public class UserRepositoryTest {
     private UserRepository userRepository;
 
     @Test
-    public void testFindByEmail() {
+    public void testFindByEmailIgnoreCase() {
         // Given
         UserEntity user = new UserEntity();
         user.setEmail("test@example.com");
@@ -26,7 +26,7 @@ public class UserRepositoryTest {
         userRepository.save(user);
 
         // When
-        Optional<UserEntity> foundUser = userRepository.findByEmail("test@example.com");
+        Optional<UserEntity> foundUser = userRepository.findByEmailIgnoreCase("test@example.com");
 
         // Then
         assertThat(foundUser).isPresent();
@@ -34,9 +34,9 @@ public class UserRepositoryTest {
     }
 
     @Test
-    public void testExistsByEmail() {
+    public void testExistsByEmailIgnoreCase() {
         // When
-        boolean userExists = userRepository.existsByEmail("nonexistent@example.com");
+        boolean userExists = userRepository.existsByEmailIgnoreCase("nonexistent@example.com");
 
         // Then
         assertThat(userExists).isFalse();

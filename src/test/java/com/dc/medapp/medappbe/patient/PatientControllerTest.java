@@ -59,7 +59,7 @@ public class PatientControllerTest {
         api = new ApiTestClient(mockMvc, objectMapper, userRepository, passwordEncoder, doctorRepository);
         patientToken = api.registerPatient(PATIENT_EMAIL);
         patientId = patientRepository.findByUserId(
-                userRepository.findByEmail(PATIENT_EMAIL).orElseThrow().getId()
+                userRepository.findByEmailIgnoreCase(PATIENT_EMAIL).orElseThrow().getId()
         ).orElseThrow().getId();
     }
 

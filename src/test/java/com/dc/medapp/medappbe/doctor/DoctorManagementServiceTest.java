@@ -26,6 +26,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import static com.dc.medapp.medappbe.support.ApiTestClient.PASSWORD;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 
@@ -51,7 +52,7 @@ public class DoctorManagementServiceTest {
     void setUp() {
         this.cardiology = specializationRepository.save(SpecializationEntity.builder().name("Cardiologia-test").build());
         this.dermatology = specializationRepository.save(SpecializationEntity.builder().name("Dermatologia-test").build());
-        doctor = doctorService.createDoctor("doc-mngm@test.it", "password9083892", "Giorgio", "Pome", cardiology.getId(), false);
+        doctor = doctorService.createDoctor("doc-mngm@test.it", PASSWORD, "Giorgio", "Pome", cardiology.getId(), false);
         var patientUsr = userRepository.save(UserEntity.builder().email("pat-test@gotm.is").passwordHash("password9023").role(Role.PATIENT).build());
         this.patient = patientRepository.save(PatientEntity.builder()
                         .lastName("Rocco")
@@ -102,7 +103,7 @@ public class DoctorManagementServiceTest {
     }
 
     @Test
-    void deactivate_succeeds_whenTheOnlyVisitsArePastOrCancelled() throws Exception {
+    void deactivate_succeeds_whenTheOnlyVisitsArePastOrCancelled() {
         saveAppointment(LocalDateTime.now().minusDays(2), AppointmentStatus.COMPLETED);
         saveAppointment(LocalDateTime.now().minusDays(1), AppointmentStatus.BOOKED);
         saveAppointment(LocalDateTime.now().plusDays(3), AppointmentStatus.CANCELLED);

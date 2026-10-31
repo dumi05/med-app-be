@@ -26,6 +26,7 @@ import tools.jackson.databind.ObjectMapper;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
+import static com.dc.medapp.medappbe.support.ApiTestClient.PASSWORD;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -36,7 +37,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 @Transactional
 public class AppointmentControllerTest {
-    private static final String PASSWORD = "password123";
     private static final String DOCTOR_EMAIL = "doctor@email.com";
 
     @Autowired

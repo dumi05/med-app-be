@@ -34,7 +34,7 @@ public class DataSeeder implements CommandLineRunner {
             List.of("Cardiologia", "Dermatologia", "Medicina Generale", "Ortopedia")
                     .forEach(name -> specializationRepository.save(SpecializationEntity.builder().name(name).build()));
         }
-        if(userRepository.findByEmail("admin@studio-medico.it").isEmpty()) {
+        if(userRepository.findByEmailIgnoreCase("admin@studio-medico.it").isEmpty()) {
             userRepository.save(UserEntity.builder()
                     .email("admin@studio-medico.it")
                     .passwordHash(passwordEncoder.encode(adminPassword))

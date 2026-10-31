@@ -3,11 +3,13 @@ package com.dc.medapp.medappbe.doctor;
 import com.dc.medapp.medappbe.appointments.AppointmentRepository;
 import com.dc.medapp.medappbe.appointments.AppointmentStatus;
 import com.dc.medapp.medappbe.audit.Audited;
+import com.dc.medapp.medappbe.auth.PasswordPolicy;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
+import com.dc.medapp.medappbe.common.validation.EmailPolicy;
 import com.dc.medapp.medappbe.specialization.SpecializationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,14 +27,17 @@ public class DoctorService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AppointmentRepository appointmentRepository;
+    private final PasswordPolicy passwordPolicy;
 
     @Transactional
     @Audited(action = "WRITE_DOCTOR", entity = "Doctor")
-    public DoctorEntity createDoctor(String email, String password, String firstName, String lastName, Long specializationId, boolean delegationConsent) {
+    public DoctorEntity createDoctor(String rawEmail, String password, String firstName, String lastName, Long specializationId, boolean delegationConsent) {
+        var email = EmailPolicy.normalize(rawEmail);
+        passwordPolicy.requireValid(password, email, firstName, lastName);
         var specialization = specializationRepository.findById(specializationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Specializzazione non trovata: " + specializationId));
 
-        if(userRepository.existsByEmail(email)) {
+        if(userRepository.existsByEmailIgnoreCase(email)) {
             throw new IllegalArgumentException("Email già in uso: " + email);
         }
         var user = userRepository.save(UserEntity.builder().email(email).passwordHash(passwordEncoder.encode(password)).role(Role.DOCTOR).build());

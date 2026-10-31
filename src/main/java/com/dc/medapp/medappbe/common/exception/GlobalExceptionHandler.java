@@ -77,6 +77,11 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.valueOf(413), "FILE_TOO_LARGE", "Il file supera la dimensione massima di 10 MB");
     }
 
+    @ExceptionHandler(WeakPasswordException.class)
+    public ResponseEntity<ErrorResponse> handleWeakPasswordException(WeakPasswordException ex) {
+        return build(HttpStatus.BAD_REQUEST, "WEAK_PASSWORD", ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
         return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }

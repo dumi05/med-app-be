@@ -1,13 +1,13 @@
 package com.dc.medapp.medappbe.doctor.dto;
 
-import jakarta.validation.constraints.Email;
+import com.dc.medapp.medappbe.common.validation.ValidEmail;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
 public record CreateDoctorRequest(
-        @NotBlank @Email String email,
-        @NotBlank @Size(min = 8) String password,
+        @NotBlank @ValidEmail String email,
+        @NotBlank @Size(max = 256) String password,
         @NotBlank String firstName,
         @NotBlank String lastName,
         @NotNull Long specializationId,
