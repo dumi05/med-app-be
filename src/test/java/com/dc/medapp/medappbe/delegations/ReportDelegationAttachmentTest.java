@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
+import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigDecimal;
@@ -71,6 +72,7 @@ public class ReportDelegationAttachmentTest {
     private long reportWithFile;
     // Every visit one hour after the previous: the visits of the same patient must not overlap.
     private int visits;
+    private final Map<String, String> accessTokens = new java.util.HashMap<>();
 
     @BeforeEach
     void setUp() throws Exception {
@@ -97,7 +99,10 @@ public class ReportDelegationAttachmentTest {
     private String delegationToken(boolean includeAttachments) throws Exception {
         var json = api.postAs(patientToken, BASE_PATH, new CreateReportDelegationRequest("Luigi Neri", "luigi@example.com", null, includeAttachments))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(json).get("token").asString();
+        var jsonObj = objectMapper.readTree(json);
+        var token = jsonObj.get("token").asString();
+        accessTokens.put(token, api.unlockDelegation(token, jsonObj.get("accessCode").asString()));
+        return token;
     }
 
     private String attachmentPath(String token, long reportId) {
@@ -130,12 +135,12 @@ public class ReportDelegationAttachmentTest {
         var withAttachments = delegationToken(true);
         var without = delegationToken(false);
 
-        mockMvc.perform(get(BASE_PATH + "/" + withAttachments + "/medical-reports"))
+        mockMvc.perform(get(BASE_PATH + "/" + withAttachments + "/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(withAttachments)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].id").value(reportWithFile))
                 .andExpect(jsonPath("$[0].attachmentAvailable").value(true))
                 .andExpect(jsonPath("$[0].attachmentUrl").doesNotExist());
-        mockMvc.perform(get(BASE_PATH + "/" + without + "/medical-reports"))
+        mockMvc.perform(get(BASE_PATH + "/" + without + "/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(without)))
                 .andExpect(jsonPath("$[0].attachmentAvailable").value(false));
     }
 
@@ -144,7 +149,7 @@ public class ReportDelegationAttachmentTest {
         var token = delegationToken(true);
         var noFile = writeReport(patientToken, null);
 
-        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports"))
+        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token)))
                 .andExpect(jsonPath("$[?(@.id == " + noFile + ")].attachmentAvailable").value(false));
     }
 
@@ -154,7 +159,7 @@ public class ReportDelegationAttachmentTest {
     void whoHoldsTheToken_downloadsTheFile_withoutLoggingIn() throws Exception {
         var token = delegationToken(true);
 
-        mockMvc.perform(get(attachmentPath(token, reportWithFile)))
+        mockMvc.perform(get(attachmentPath(token, reportWithFile)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token)))
                 .andExpect(status().isOk())
                 .andExpect(header().string("Content-Disposition", containsString("attachment")))
                 .andExpect(header().string("X-Content-Type-Options", "nosniff"))
@@ -165,7 +170,7 @@ public class ReportDelegationAttachmentTest {
     void withoutTheChoiceOfThePatient_returns404() throws Exception {
         var token = delegationToken(false);
 
-        mockMvc.perform(get(attachmentPath(token, reportWithFile))).andExpect(status().isNotFound());
+        mockMvc.perform(get(attachmentPath(token, reportWithFile)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token))).andExpect(status().isNotFound());
     }
 
     @Test
@@ -190,7 +195,7 @@ public class ReportDelegationAttachmentTest {
         var otherToken = api.registerPatient("deleg.att.other@test.it");
         var othersReport = writeReport(otherToken, TestFiles.pdf());
 
-        mockMvc.perform(get(attachmentPath(token, othersReport)))
+        mockMvc.perform(get(attachmentPath(token, othersReport)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token)))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.code").value("RESOURCE_NOT_FOUND"));
     }
@@ -200,22 +205,22 @@ public class ReportDelegationAttachmentTest {
         var token = delegationToken(true);
         var noFile = writeReport(patientToken, null);
 
-        mockMvc.perform(get(attachmentPath(token, noFile))).andExpect(status().isNotFound());
+        mockMvc.perform(get(attachmentPath(token, noFile)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token))).andExpect(status().isNotFound());
     }
 
     @Test
     void anUnknownReport_returns404() throws Exception {
         var token = delegationToken(true);
 
-        mockMvc.perform(get(attachmentPath(token, 999_999L))).andExpect(status().isNotFound());
+        mockMvc.perform(get(attachmentPath(token, 999_999L)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token))).andExpect(status().isNotFound());
     }
 
     @Test
     void theLinkOpensNothingElse() throws Exception {
         var token = delegationToken(true);
 
-        mockMvc.perform(get("/api/v1/medical-reports/" + reportWithFile + "/attachment")).andExpect(status().isUnauthorized());
-        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports/" + reportWithFile)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/medical-reports/" + reportWithFile + "/attachment").header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token))).andExpect(status().isUnauthorized());
+        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports/" + reportWithFile).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token))).andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -224,13 +229,18 @@ public class ReportDelegationAttachmentTest {
                 .andReturn().getResponse().getContentAsString();
         var token = objectMapper.readTree(json).get("token").asString();
         var delegationId = objectMapper.readTree(json).get("id").asLong();
+        accessTokens.put(token, api.unlockDelegation(token, objectMapper.readTree(json).get("accessCode").asString()));
         api.createUser("deleg.att.admin@test.it", Role.ADMIN);
 
-        mockMvc.perform(get(attachmentPath(token, reportWithFile))).andExpect(status().isOk());
+        mockMvc.perform(get(attachmentPath(token, reportWithFile)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token))).andExpect(status().isOk());
         mockMvc.perform(get(attachmentPath("not-a-token", reportWithFile))).andExpect(status().isNotFound());
 
         api.getAs(api.login("deleg.att.admin@test.it"), "/api/v1/audit-logs?limit=200")
                 .andExpect(jsonPath("$[?(@.action == 'ACCESS_ATTACHMENT_VIA_DELEGATION' && @.outcome == 'SUCCESS' && @.entityId == " + delegationId + ")]").isNotEmpty())
                 .andExpect(jsonPath("$[?(@.action == 'ACCESS_ATTACHMENT_VIA_DELEGATION' && @.outcome == 'FAILURE')]").isNotEmpty());
     }
-}
+
+    private String access(String token) {
+        return accessTokens.getOrDefault(token, "");
+    }
+ }

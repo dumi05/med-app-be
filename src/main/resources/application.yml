@@ -28,6 +28,10 @@ app:
   security:
     max-failed-logins: ${MAX_FAILED_LOGINS:5}
     lockout-minutes: ${LOCKOUT_MINUTES:15}
+  delegation:
+    max-code-failures: ${MAX_DELEGATION_CODE_FAILURES:5}
+    lock-minutes: ${DELEGATION_LOCK_MINUTES:15}
+    access-minutes: ${DELEGATION_ACCESS_MINUTES:15}
 
 springdoc:
   swagger-ui:

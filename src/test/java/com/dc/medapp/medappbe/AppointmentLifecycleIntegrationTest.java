@@ -29,6 +29,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 
+import static com.dc.medapp.medappbe.support.ApiTestClient.DELEGATION_ACCESS_HEADER;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -122,6 +123,10 @@ public class AppointmentLifecycleIntegrationTest {
         var token = delegation.get("token").asString();
 
         mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports"))
+                .andExpect(status().isForbidden());
+        var accessToken = api.unlockDelegation(token, delegation.get("accessCode").asString());
+
+        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports").header(DELEGATION_ACCESS_HEADER, accessToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].diagnosisText").value(DIAGNOSIS))
@@ -222,17 +227,23 @@ public class AppointmentLifecycleIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsByteArray();
         assertThat(downloaded).isEqualTo(TestFiles.pdfBytes());
 
-        // the caregiver, with a link that includes the attachments, too
-        var token = json(api.postAs(patientToken, "/api/v1/report-delegations",
+
+        var delegation = json(api.postAs(patientToken, "/api/v1/report-delegations",
                         new CreateReportDelegationRequest("Luigi Neri", "luigi.neri@example.com", null, true))
-                .andExpect(status().isOk())).get("token").asString();
-        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports/" + reportNumber + "/attachment"))
+                .andExpect(status().isOk()));
+
+        // the caregiver, with a link that includes the attachments, too
+        var token = delegation.get("token").asString();
+        var accessToken = api.unlockDelegation(token, delegation.get("accessCode").asString());
+        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports/" + reportNumber + "/attachment")
+                        .header(DELEGATION_ACCESS_HEADER, accessToken))
                 .andExpect(status().isOk())
                 .andExpect(content().bytes(TestFiles.pdfBytes()));
 
         // after the erasure the patient and the link are dead, the file stays for the doctor
         api.postAs(patientToken, "/api/v1/patients/me/anonymize", null).andExpect(status().isNoContent());
-        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports/" + reportNumber + "/attachment"))
+        mockMvc.perform(get("/api/v1/report-delegations/" + token + "/medical-reports/" + reportNumber + "/attachment")
+                        .header(DELEGATION_ACCESS_HEADER, accessToken))
                 .andExpect(status().isNotFound());
         api.getAs(doctorToken, "/api/v1/medical-reports/" + reportNumber + "/attachment")
                 .andExpect(status().isOk())

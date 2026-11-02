@@ -7,6 +7,7 @@ import com.dc.medapp.medappbe.auth.UserRepository;
 import com.dc.medapp.medappbe.auth.dto.ChangePasswordRequest;
 import com.dc.medapp.medappbe.auth.dto.LoginRequest;
 import com.dc.medapp.medappbe.auth.dto.RegisterRequest;
+import com.dc.medapp.medappbe.delegations.dto.UnlockReportDelegationRequest;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
 import com.dc.medapp.medappbe.doctor.DoctorRepository;
 import com.dc.medapp.medappbe.reports.dto.CreateMedicalReportRequest;
@@ -26,6 +27,7 @@ public class ApiTestClient {
 
     public static final String PASSWORD = "Tavolo-Viola-Nuvola-42";
     public static final String CHANGED_PASSWORD = "Nuvola-Viola-Tavolo-877";
+    public static final String DELEGATION_ACCESS_HEADER = "X-Delegation-Access";
 
     private final MockMvc mockMvc;
     private final ObjectMapper objectMapper;
@@ -120,6 +122,14 @@ public class ApiTestClient {
             builder.file(file);
         }
         return mockMvc.perform(builder);
+    }
 
+    public String unlockDelegation(String token, String code) throws Exception {
+        var json = mockMvc.perform(post("/api/v1/report-delegations/"+token+"/access")
+                        .contentType("application/json")
+                        .content(objectMapper.writeValueAsString(new UnlockReportDelegationRequest(code))))
+                .andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString();
+        return objectMapper.readTree(json).get("accessToken").asString();
     }
 }

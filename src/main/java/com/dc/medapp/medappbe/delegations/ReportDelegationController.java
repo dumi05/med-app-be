@@ -1,9 +1,7 @@
 package com.dc.medapp.medappbe.delegations;
 
 import com.dc.medapp.medappbe.auth.UserEntity;
-import com.dc.medapp.medappbe.delegations.dto.CreateReportDelegationRequest;
-import com.dc.medapp.medappbe.delegations.dto.ReportDelegationResponse;
-import com.dc.medapp.medappbe.delegations.dto.SharedMedicalReportResponse;
+import com.dc.medapp.medappbe.delegations.dto.*;
 import com.dc.medapp.medappbe.reports.AttachmentHttp;
 import com.dc.medapp.medappbe.security.ProfileResolver;
 import jakarta.validation.Valid;
@@ -22,13 +20,15 @@ import java.util.List;
 public class ReportDelegationController {
 
     private final ReportDelegationService service;
+    private final DelegationAccessService accessService;
     private final ProfileResolver profileResolver;
+    public static final String ACCESS_HEADER = "X-Delegation-Access";
 
     @PostMapping
     @PreAuthorize("hasRole('PATIENT')")
     public ResponseEntity<ReportDelegationResponse> create(@AuthenticationPrincipal UserEntity user,
                                                            @Valid @RequestBody CreateReportDelegationRequest req) {
-        return ResponseEntity.ok(ReportDelegationResponse.fromEntity(service.create(profileResolver.patientIdOf(user), req.delegateName(), req.delegateEmail(), req.expiresAt(), Boolean.TRUE.equals(req.includeAttachments()))));
+        return ResponseEntity.ok(ReportDelegationResponse.created(service.create(profileResolver.patientIdOf(user), req.delegateName(), req.delegateEmail(), req.expiresAt(), Boolean.TRUE.equals(req.includeAttachments()))));
     }
 
     @GetMapping("/me")
@@ -49,17 +49,25 @@ public class ReportDelegationController {
         );
     }
 
+    @PostMapping("/{token}/access")
+    public ResponseEntity<AccessGrantResponse> access(@PathVariable String token,
+                                                      @Valid @RequestBody UnlockReportDelegationRequest req) {
+        var grant = accessService.unlock(accessService.activeDelegationIdOf(token), req.code());
+        return ResponseEntity.ok(AccessGrantResponse.fromGrant(grant));
+    }
+
     @GetMapping("/{token}/medical-reports")
-    public ResponseEntity<List<SharedMedicalReportResponse>> reportsByToken(@PathVariable String token) {
-        var delegation = service.openByToken(token);
+    public ResponseEntity<List<SharedMedicalReportResponse>> reportsByToken(@PathVariable String token,
+                                                                            @RequestHeader(value = ACCESS_HEADER, required = false) String accessToken) {
+        var delegation = service.openByToken(token, accessToken);
         return ResponseEntity.ok(
             service.reportsOf(delegation).stream().map(s -> SharedMedicalReportResponse.fromEntity(s, delegation.isIncludeAttachments())).toList()
         );
     }
 
     @GetMapping("/{token}/medical-reports/{reportId}/attachment")
-    public ResponseEntity<Resource> attachmentByToken(@PathVariable String token, @PathVariable Long reportId) {
-        var delegation = service.openForAttachments(token);
+    public ResponseEntity<Resource> attachmentByToken(@PathVariable String token, @PathVariable Long reportId, @RequestHeader(value = ACCESS_HEADER, required = false) String accessToken) {
+        var delegation = service.openForAttachments(token, accessToken);
         return AttachmentHttp.asDownload(service.attachmentOf(delegation, reportId));
     }
 }

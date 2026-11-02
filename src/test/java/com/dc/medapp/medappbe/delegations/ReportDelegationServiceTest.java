@@ -9,6 +9,7 @@ import com.dc.medapp.medappbe.auth.UserRepository;
 import com.dc.medapp.medappbe.billing.BillingService;
 import com.dc.medapp.medappbe.billing.PriceListEntity;
 import com.dc.medapp.medappbe.billing.PriceListRepository;
+import com.dc.medapp.medappbe.common.exception.AccessCodeRequiredException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
@@ -52,6 +53,7 @@ public class ReportDelegationServiceTest {
     @Autowired private AvailabilitySlotRepository slotRepository;
     @Autowired private PriceListRepository priceListRepository;
     @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private DelegationAccessService accessService;
 
     private PatientEntity patient;
     private DoctorEntity doctor;
@@ -119,7 +121,7 @@ public class ReportDelegationServiceTest {
     @Test
     void openByToken_returnTheReportsOfThePatient() {
         var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
-        var delegationOpened = service.openByToken(delegation.getToken());
+        var delegationOpened = open(delegation);
         assertThat(service.reportsOf(delegationOpened)).hasSize(1);
     }
 
@@ -127,18 +129,18 @@ public class ReportDelegationServiceTest {
     void reportsOf_doesNotReturnTheReportOfAnotherPatient() {
         var other = createPatient("other-patient@test.it");
         var delegation = service.create(other.getId(), "Gigi Neri", "gigi@neri.com", null,false);
-        assertThat(service.reportsOf(service.openByToken(delegation.getToken()))).isEmpty();
+        assertThat(service.reportsOf(open(delegation))).isEmpty();
     }
 
     @Test
     void openByToken_works_untilTheEndOfTheExpiryDate() {
         var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", LocalDate.now(), false);
-        assertThat(service.openByToken(delegation.getToken())).isNotNull();
+        assertThat(open(delegation)).isNotNull();
     }
 
     @Test
     void openByToken_throwsResourceNotFoundException_whnTheTokenIsUnknown() {
-        assertThrows(ResourceNotFoundException.class, () -> service.openByToken("not-a-token"));
+        assertThrows(ResourceNotFoundException.class, () -> service.openByToken("not-a-token", null));
     }
 
     @Test
@@ -146,7 +148,7 @@ public class ReportDelegationServiceTest {
         var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
         service.revoke(delegation.getId(), patient.getId());
 
-        assertThrows(ResourceNotFoundException.class, () -> service.openByToken(delegation.getToken()));
+        assertThrows(ResourceNotFoundException.class, () -> service.openByToken(delegation.getToken(), null));
     }
 
     @Test
@@ -160,14 +162,14 @@ public class ReportDelegationServiceTest {
                         .revoked(false)
                 .build());
 
-        assertThrows(ResourceNotFoundException.class, () -> service.openByToken(expired.getToken()));
+        assertThrows(ResourceNotFoundException.class, () -> service.openByToken(expired.getToken(), null));
     }
 
     @Test
     void openByToken_writesTheDelegationIdInTheAccessLog_whenItSucceeds() {
         var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
 
-        service.openByToken(delegation.getToken());
+        open(delegation);
 
         assertThat(auditLogRepository.findAll()).anySatisfy(line -> {
             assertThat(line.getAction()).isEqualTo("ACCESS_REPORTS_VIA_DELEGATION");
@@ -178,7 +180,7 @@ public class ReportDelegationServiceTest {
 
     @Test
     void openByToken_writesTheFailureInTheLogs_whenTokenIsNotValid() {
-        assertThrows(ResourceNotFoundException.class, () -> service.openByToken("not-a-token"));
+        assertThrows(ResourceNotFoundException.class, () -> service.openByToken("not-a-token", null));
 
         assertThat(auditLogRepository.findAll()).anySatisfy(line -> {
             assertThat(line.getAction()).isEqualTo("ACCESS_REPORTS_VIA_DELEGATION");
@@ -239,7 +241,47 @@ public class ReportDelegationServiceTest {
 
         assertThat(first.isRevoked()).isTrue();
         assertThat(second.isRevoked()).isTrue();
-        assertThrows(ResourceNotFoundException.class, () -> service.openByToken(first.getToken()));
+        assertThrows(ResourceNotFoundException.class, () -> service.openByToken(first.getToken(), null));
+    }
+
+    @Test
+    void create_issuesAnAccessCode_shownOnceAndSavedOnlyAsAHash() {
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
+
+        assertThat(delegation.getIssuedAccessCode()).matches("[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}");
+        assertThat(delegation.hasAccessCode()).isTrue();
+        assertThat(delegation.getAccessCodeHash()).startsWith("$2").doesNotContain(delegation.getIssuedAccessCode().replace("-", ""));
+        var reloaded = reportDelegationRepository.findById(delegation.getId()).orElseThrow();
+        assertThat(reloaded.hasAccessCode()).isTrue();
+    }
+
+    @Test
+    void create_issuesADifferentCodeToEveryDelegation() {
+        var first = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
+        var second = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
+
+        assertThat(first.getIssuedAccessCode()).isNotEqualTo(second.getIssuedAccessCode());
+    }
+
+    @Test
+    void openByToken_throwsAccessCodeRequiredException_withoutTheAccessToken_andWritesTheFailure() {
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, false);
+
+        assertThrows(AccessCodeRequiredException.class, () -> service.openByToken(delegation.getToken(), null));
+        assertThrows(AccessCodeRequiredException.class, () -> service.openByToken(delegation.getToken(), "  "));
+
+        assertThat(auditLogRepository.findAll()).anySatisfy(line -> {
+            assertThat(line.getAction()).isEqualTo("ACCESS_REPORTS_VIA_DELEGATION");
+            assertThat(line.getOutcome()).isEqualTo(AuditOutcome.FAILURE);
+            assertThat(line.getFailureReason()).isEqualTo("AccessCodeRequiredException");
+        });
+    }
+
+    @Test
+    void openForAttachments_throwsAccessCodeRequiredException_withoutTheAccessToken() {
+        var delegation = service.create(patient.getId(), "Luigi Rossi", "luigi@example.it", null, true);
+
+        assertThrows(AccessCodeRequiredException.class, () -> service.openForAttachments(delegation.getToken(), null));
     }
 
     // Helpers
@@ -254,4 +296,10 @@ public class ReportDelegationServiceTest {
         return patientRepository.save(PatientEntity.builder().user(user).firstName("Antonio").lastName("Tonio")
                 .gdprConsent(true).gdprConsentTimestamp(Instant.now()).gdprConsentVersion("v1.0").anonymized(false).build());
     }
+
+    private ReportDelegationEntity open(ReportDelegationEntity delegation) {
+        var grant = accessService.unlock(delegation.getId(), delegation.getIssuedAccessCode());
+        return service.openByToken(delegation.getToken(), grant.accessToken());
+    }
+
 }

@@ -145,4 +145,30 @@ public class GlobalExceptionHandlerTest {
         assertThat(response.getBody().code()).isEqualTo("SPECIALIZATION_ALREADY_EXISTS");
         assertThat(response.getBody().message()).contains("Cardiologia");
     }
+
+    @Test
+    void handleAccessCodeRequired_returns403() {
+        var response = handler.handleAccessCodeRequiredException(new AccessCodeRequiredException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().code()).isEqualTo("ACCESS_CODE_REQUIRED");
+    }
+
+    @Test
+    void handleInvalidAccessCode_returns403() {
+        var response = handler.handleInvalidAccessCodeException(new InvalidAccessCodeException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody().code()).isEqualTo("INVALID_ACCESS_CODE");
+    }
+
+    @Test
+    void handleAccessCodeLocked_returns429WithRetryAfter_andSaysTheMinutesInItalian() {
+        var response = handler.handleAccessCodeLockedException(new AccessCodeLockedException(Duration.ofSeconds(61)));
+
+        assertThat(response.getStatusCode().value()).isEqualTo(429);
+        assertThat(response.getHeaders().getFirst("Retry-After")).isEqualTo("61");
+        assertThat(response.getBody().code()).isEqualTo("ACCESS_CODE_LOCKED");
+        assertThat(response.getBody().message()).endsWith("2 minuti.");
+    }
 }

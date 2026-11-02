@@ -27,8 +27,11 @@ import tools.jackson.databind.ObjectMapper;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.matchesPattern;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -63,6 +66,7 @@ public class ReportDelegationControllerTest {
     private ApiTestClient api;
     private String patientToken;
     private String doctorToken;
+    private final Map<String, String> accessTokens = new HashMap<>();
 
     @BeforeEach
     void setUp() throws Exception {
@@ -172,7 +176,7 @@ public class ReportDelegationControllerTest {
     void whoHoldsTheToken_readsTheReports_withoutLoggingIn() throws Exception {
         var token = createDelegationToken(patientToken);
 
-        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports"))
+        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, accessTokens.get(token)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].diagnosisText").value("Nessun risultato."))
@@ -184,7 +188,7 @@ public class ReportDelegationControllerTest {
     void thePublicResponse_exposeOnlyTheNumberOfTheReport_notTheAppointmentNorThePatient() throws Exception {
         var token = createDelegationToken(patientToken);
 
-        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports"))
+        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, accessTokens.get(token)))
                 .andExpect(jsonPath("$[0].id").isNumber())
                 .andExpect(jsonPath("$[0].appointmentId").doesNotExist())
                 .andExpect(jsonPath("$[0].patientId").doesNotExist())
@@ -195,7 +199,7 @@ public class ReportDelegationControllerTest {
     void thePublicResponse_isNotCached() throws Exception {
         var token = createDelegationToken(patientToken);
 
-        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports"))
+        mockMvc.perform(get(BASE_PATH + "/" + token + "/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, accessTokens.get(token)))
                 .andExpect(header().string("Cache-Control", containsString("no-store")));
     }
 
@@ -221,9 +225,22 @@ public class ReportDelegationControllerTest {
     void theTokenOpensNothingElse() throws Exception {
         var token = createDelegationToken(patientToken);
 
-        mockMvc.perform(get("/api/v1/medical-reports").param("appointmentId", "1")).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/v1/medical-reports").header(ApiTestClient.DELEGATION_ACCESS_HEADER, accessTokens.get(token)).param("appointmentId", "1")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/v1/appointments/me")).andExpect(status().isUnauthorized());
         mockMvc.perform(get(BASE_PATH + "/" + token)).andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void creatingADelegation_returnsTheAccessCodeOnce_andTheListNeverShowsIt() throws Exception {
+        api.postAs(patientToken, BASE_PATH, request("Luigi Rossi", "luigi@example.com", null))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessCode", matchesPattern("[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}")))
+                .andExpect(jsonPath("$.hasAccessCode").value(true));
+
+        api.getAs(patientToken, BASE_PATH + "/me")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].accessCode").isEmpty())
+                .andExpect(jsonPath("$[0].hasAccessCode").value(true));
     }
 
     // Helpers
@@ -241,7 +258,10 @@ public class ReportDelegationControllerTest {
     private String createDelegationToken(String token) throws Exception {
         var json = api.postAs(token, BASE_PATH, request("Luigi Rossi", "luigi@example.com", null))
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
-        return objectMapper.readTree(json).get("token").asString();
+        var jsonObj = objectMapper.readTree(json);
+        var delegationToken = jsonObj.get("token").asString();
+        accessTokens.put(delegationToken, api.unlockDelegation(delegationToken, jsonObj.get("accessCode").asString()));
+        return delegationToken;
     }
 
     private void writeReportForThePatient(DoctorEntity doctor) throws Exception {

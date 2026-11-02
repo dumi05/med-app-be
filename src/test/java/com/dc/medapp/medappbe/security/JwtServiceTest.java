@@ -2,15 +2,18 @@ package com.dc.medapp.medappbe.security;
 
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
+import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.Duration;
 import java.util.Date;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 public class JwtServiceTest {
 
@@ -26,6 +29,34 @@ public class JwtServiceTest {
                 .passwordHash("hashedpassword")
                 .build();
         ReflectionTestUtils.setField(user, "id", 1L);
+    }
+
+    @Test
+    void aDelegationAccessToken_carriesTheIdOfTheDelegation() {
+        String token = jwtService.generateDelegationAccessToken(42L, Duration.ofMinutes(15));
+
+        assertThat(jwtService.delegationIdOf(token)).isEqualTo(42L);
+    }
+
+    @Test
+    void aLoginToken_isNotADelegationAccessToken() {
+        assertThatThrownBy(() -> jwtService.delegationIdOf(jwtService.generateToken(user))).isInstanceOf(JwtException.class);
+    }
+
+    @Test
+    void aDelegationAccessToken_isNeverValidAsALoginToken() {
+        String token = jwtService.generateDelegationAccessToken(1L, Duration.ofMinutes(15));
+        // the subject of the token is the id of the delegation: even a user whose "e-mail" is "1" must not get in
+        var strangeUser = UserEntity.builder().email("1").role(Role.PATIENT).passwordHash("x").build();
+
+        assertThat(jwtService.isTokenValid(token, strangeUser)).isFalse();
+    }
+
+    @Test
+    void anExpiredDelegationAccessToken_isRefused() {
+        String token = jwtService.generateDelegationAccessToken(42L, Duration.ofSeconds(-5));
+
+        assertThatThrownBy(() -> jwtService.delegationIdOf(token)).isInstanceOf(JwtException.class);
     }
 
     @Test

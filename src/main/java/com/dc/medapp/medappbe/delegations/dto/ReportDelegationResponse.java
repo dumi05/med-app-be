@@ -14,8 +14,31 @@ public record ReportDelegationResponse(
         boolean revoked,
         boolean active,
         boolean includeAttachments,
+        boolean hasAccessCode,
+        String accessCode,
         Instant createdAt
 ) {
+
+    private ReportDelegationResponse withAccessCode(String accessCode) {
+        return new ReportDelegationResponse(
+                id,
+                delegateName,
+                delegateEmail,
+                token,
+                expiresAt,
+                revoked,
+                active,
+                includeAttachments,
+                hasAccessCode,
+                accessCode,
+                createdAt
+        );
+    }
+
+    public static ReportDelegationResponse created(ReportDelegationEntity entity) {
+        return fromEntity(entity).withAccessCode(entity.getIssuedAccessCode());
+    }
+
     public static ReportDelegationResponse fromEntity(ReportDelegationEntity entity) {
         return new ReportDelegationResponse(
                 entity.getId(),
@@ -26,6 +49,8 @@ public record ReportDelegationResponse(
                 entity.isRevoked(),
                 entity.isActive(LocalDate.now()),
                 entity.isIncludeAttachments(),
+                entity.hasAccessCode(),
+                null,
                 entity.getCreatedAt()
         );
     }

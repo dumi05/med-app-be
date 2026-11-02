@@ -5,6 +5,7 @@ import com.dc.medapp.medappbe.patient.PatientEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.time.Instant;
 import java.time.LocalDate;
 
 @Entity
@@ -37,6 +38,22 @@ public class ReportDelegationEntity extends AuditableEntity {
     @Column(name = "include_attachments")
     private boolean includeAttachments;
 
+    @Column(name = "access_code_hash")
+    private String accessCodeHash;
+
+    @Builder.Default
+    @Column(name = "failed_code_attempts", nullable = false, columnDefinition = "integer default 0")
+    private int failedCodeAttempts = 0;
+
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
+
+    @Transient
+    private String issuedAccessCode;
+
+    public boolean hasAccessCode() {
+        return accessCodeHash != null && !accessCodeHash.isEmpty();
+    }
     public boolean isActive(LocalDate date) {
         return !revoked && (expiresAt == null || !expiresAt.isBefore(date));
     }

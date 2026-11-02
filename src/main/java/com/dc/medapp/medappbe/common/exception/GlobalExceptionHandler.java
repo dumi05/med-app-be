@@ -108,6 +108,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.CONFLICT, "SPECIALIZATION_ALREADY_EXISTS", ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidAccessCodeException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidAccessCodeException(InvalidAccessCodeException ex) {
+        return build(HttpStatus.FORBIDDEN, "INVALID_ACCESS_CODE", ex.getMessage());
+    }
+
+    @ExceptionHandler(AccessCodeLockedException.class)
+    public ResponseEntity<ErrorResponse> handleAccessCodeLockedException(AccessCodeLockedException ex) {
+        long seconds = ex.retryAfterSeconds();
+        long minutes = (seconds+59)/60;
+        var message = "Troppi codici sbagliati. Riprova tra " + minutes + (minutes == 1 ? " minuto." : " minuti.");
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(seconds))
+                .body(new ErrorResponse("ACCESS_CODE_LOCKED", message, Instant.now()));
+    }
+
+    @ExceptionHandler(AccessCodeRequiredException.class)
+    public ResponseEntity<ErrorResponse> handleAccessCodeRequiredException(AccessCodeRequiredException ex) {
+        return build(HttpStatus.FORBIDDEN, "ACCESS_CODE_REQUIRED", ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
         return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }

@@ -10,6 +10,7 @@ import com.dc.medapp.medappbe.reports.MedicalReportRepository;
 import com.dc.medapp.medappbe.reports.MedicalReportService;
 import com.dc.medapp.medappbe.reports.dto.AttachmentDownload;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +25,8 @@ public class ReportDelegationService {
     private final PatientRepository patientRepository;
     private final MedicalReportRepository medicalReportRepository;
     private final MedicalReportService medicalReportService;
+    private final PasswordEncoder passwordEncoder;
+    private final DelegationAccessService accessService;
 
     @Transactional
     @Audited(action = "CREATE_REPORT_DELEGATION", entity = "ReportDelegation")
@@ -35,17 +38,20 @@ public class ReportDelegationService {
             throw new IllegalArgumentException("La data di scadenza non può essere nel passato.");
         }
 
-        return reportDelegationRepository.save(
-                ReportDelegationEntity.builder()
-                        .delegateEmail(EmailPolicy.normalize(delegateEmail))
-                        .delegateName(delegateName)
-                        .expiresAt(expiresAt)
-                        .patient(patient)
-                        .includeAttachments(includedAttachments)
-                        .token(UUID.randomUUID().toString())
-                        .revoked(false)
-                        .build()
-        );
+        var accessCode = AccessCode.generate();
+        var delegation = reportDelegationRepository.save(ReportDelegationEntity.builder()
+                .delegateEmail(EmailPolicy.normalize(delegateEmail))
+                .delegateName(delegateName)
+                .expiresAt(expiresAt)
+                .patient(patient)
+                .includeAttachments(includedAttachments)
+                .token(UUID.randomUUID().toString())
+                .revoked(false)
+                .accessCodeHash(passwordEncoder.encode(accessCode))
+                .build());
+
+        delegation.setIssuedAccessCode(AccessCode.display(accessCode));
+        return delegation;
     }
 
     @Transactional(readOnly = true)
@@ -72,7 +78,8 @@ public class ReportDelegationService {
 
     @Transactional(readOnly = true)
     @Audited(action = "ACCESS_REPORTS_VIA_DELEGATION", entity = "ReportDelegation")
-    public ReportDelegationEntity openByToken(String token) {
+    public ReportDelegationEntity openByToken(String token, String accessToken) {
+        accessService.requireAccess(token, accessToken);
         return reportDelegationRepository.findByToken(token)
                 .filter(del -> del.isActive(LocalDate.now()))
                 .orElseThrow(() -> new ResourceNotFoundException("Link non valido o non più attivo."));
@@ -85,7 +92,8 @@ public class ReportDelegationService {
 
     @Transactional(readOnly = true)
     @Audited(action = "ACCESS_ATTACHMENT_VIA_DELEGATION", entity = "ReportDelegation")
-    public ReportDelegationEntity openForAttachments(String token){
+    public ReportDelegationEntity openForAttachments(String token, String accessToken){
+        accessService.requireAccess(token, accessToken);
         return reportDelegationRepository.findByToken(token)
                 .filter(d -> d.isActive(LocalDate.now()) && d.isIncludeAttachments())
                 .orElseThrow(() -> new ResourceNotFoundException("Link non valido o non più attivo."));

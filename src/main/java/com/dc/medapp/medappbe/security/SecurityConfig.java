@@ -29,6 +29,7 @@ public class SecurityConfig {
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/v3/api-docs/**",
+            "/api/v1/report-delegations/*/access",
             "/api/v1/report-delegations/*/medical-reports",
             "/api/v1/report-delegations/*/medical-reports/*/attachment"
     };
