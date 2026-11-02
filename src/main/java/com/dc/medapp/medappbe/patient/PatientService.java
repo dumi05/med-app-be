@@ -12,11 +12,15 @@ import com.dc.medapp.medappbe.patient.dto.PatientProfileResponse;
 import com.dc.medapp.medappbe.reports.MedicalReportRepository;
 import com.dc.medapp.medappbe.reports.dto.MedicalReportResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 @Service
@@ -26,11 +30,38 @@ public class PatientService {
     public static final String ANONYMIZED_FIRST_NAME = "Paziente";
     public static final String ANONYMIZED_LAST_NAME = "Anonimizzato";
 
+    private static final int MIN_SEARCH_LENGTH = 3;
+    private static final int MAX_SEARCH_RESULTS = 10;
+    private static final int SEARCH_CANDIDATES = 200;
+
     private final PatientRepository patientRepository;
     private final AppointmentService appointmentService;
     private final MedicalReportRepository reportRepository;
     private final PasswordEncoder passwordEncoder;
     private final ReportDelegationService reportDelegationService;
+
+    @Transactional(readOnly = true)
+    @Audited(action = "SEARCH_PATIENTS", entity = "Patient")
+    public List<PatientEntity> search(String query){
+        var words = Arrays.stream(query == null ? new String[0] : query.trim().toLowerCase(Locale.ROOT).split("\\s+"))
+                .filter(word -> !word.isEmpty())
+                .toList();
+
+        if(words.isEmpty() || String.join("", words).length() < MIN_SEARCH_LENGTH){
+            throw new IllegalArgumentException("Scrivi almen    o " + MIN_SEARCH_LENGTH + " caratteri per cercare un paziente.");
+        }
+        return patientRepository.searchByText(escapeLike(words.getFirst()), PageRequest.of(0, SEARCH_CANDIDATES)).stream()
+                .filter(patient -> {
+                    var haystack = (patient.getFirstName() + " " + patient.getLastName() + " " + patient.getUser().getEmail()).toLowerCase(Locale.ROOT);
+                    return words.stream().skip(1).allMatch(haystack::contains);
+                })
+                .limit(MAX_SEARCH_RESULTS)
+                .toList();
+    }
+
+    private static String escapeLike(String text) {
+        return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_");
+    }
 
     /**
      * Right to erasure (GDPR art. 17) without breaking the duty to keep clinical and accounting records: the rows stay,

@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.appointments.dto;
 
 import com.dc.medapp.medappbe.appointments.AppointmentEntity;
 import com.dc.medapp.medappbe.appointments.AppointmentStatus;
+import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.schedule.dto.SlotResponse;
 
 public record AppointmentResponse (
@@ -11,7 +12,8 @@ public record AppointmentResponse (
         Long patientId,
         String patientFirstName,
         String patientLastName,
-        Boolean noShowRisk
+        Boolean noShowRisk,
+        Role bookedByRole
 ){
     public static AppointmentResponse fromEntity(AppointmentEntity entity, boolean includeNoShowRisk) {
         var patient = entity.getPatient();
@@ -22,7 +24,8 @@ public record AppointmentResponse (
                 patient.getId(),
                 patient.getFirstName(),
                 patient.getLastName(),
-                includeNoShowRisk ? entity.isNoShowRisk() : null
+                includeNoShowRisk ? entity.isNoShowRisk() : null,
+                entity.getBookedByRole() == null ? Role.PATIENT : entity.getBookedByRole()
         );
     }
 }

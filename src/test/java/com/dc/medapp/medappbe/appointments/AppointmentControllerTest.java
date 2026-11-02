@@ -104,14 +104,6 @@ public class AppointmentControllerTest {
     }
 
     @Test
-    void doctor_cannotBookAnAppointment_receives403() throws Exception {
-        var doctorToken = login(DOCTOR_EMAIL);
-
-        mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer "+doctorToken).contentType("application/json").content(objectMapper.writeValueAsString(new CreateAppointmentRequest(slotId))))
-                .andExpect(status().isForbidden());
-    }
-
-    @Test
     void assignedDoctor_canCompleteVisitAndSeesNoShowRisk() throws Exception {
         var appointmentId = book(registerPatient("patient.1@pat.lo"), slotId);
         var doctorToken = login(DOCTOR_EMAIL);
@@ -157,6 +149,15 @@ public class AppointmentControllerTest {
         mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer " + token).contentType("application/json").content(objectMapper.writeValueAsString(new CreateAppointmentRequest(overlapping))))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.code").value("APPOINTMENT_OVERLAP"));
+    }
+
+    @Test
+    void doctor_bookingWithoutSayingForWhom_receives400() throws Exception {
+        var doctorToken = login(DOCTOR_EMAIL);
+
+        mockMvc.perform(post("/api/v1/appointments").header("Authorization", "Bearer "+doctorToken).contentType("application/json").content(objectMapper.writeValueAsString(new CreateAppointmentRequest(slotId))))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
     }
 
     private String registerPatient(String mail) throws Exception {

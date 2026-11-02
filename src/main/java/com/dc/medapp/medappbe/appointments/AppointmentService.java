@@ -1,11 +1,14 @@
 package com.dc.medapp.medappbe.appointments;
 
 import com.dc.medapp.medappbe.audit.Audited;
+import com.dc.medapp.medappbe.auth.Role;
+import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.common.exception.*;
 import com.dc.medapp.medappbe.delegations.DoctorDelegationService;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotRepository;
+import com.dc.medapp.medappbe.security.ProfileResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,13 +27,41 @@ public class AppointmentService {
     private final PatientRepository patientRepository;
     private final NoShowRiskCalculator noShowRiskCalculator;
     private final DoctorDelegationService delegationService;
+    private final ProfileResolver profileResolver;
 
     @Transactional
     @Audited(action = "BOOK_APPOINTMENT", entity = "Appointment")
     public AppointmentEntity createAppointment(Long patientId, Long slotId) {
-        var patient = patientRepository.findById(patientId).orElseThrow(() -> new ResourceNotFoundException("Paziente " + patientId + " non trovato"));
-        var slot = availabilitySlotRepository.findById(slotId).orElseThrow(() -> new ResourceNotFoundException("Slot " + slotId + " non trovato"));
+        return book(patientId, slotId, Role.PATIENT, null);
+    }
 
+    @Transactional
+    @Audited(action = "BOOK_APPOINTMENT", entity = "Appointment")
+    public AppointmentEntity createAppointmentAs(UserEntity actor, Long slotId, Long requestedPatientId){
+        if(actor.getRole() == Role.PATIENT){
+            var ownId = profileResolver.patientIdOf(actor);
+            if(requestedPatientId != null && !requestedPatientId.equals(ownId)){
+                throw new UnauthorizedAccessException("Un paziente può prenotare solo per sé.");
+            }
+            return book(ownId, slotId, Role.PATIENT, null);
+        }
+        if(requestedPatientId == null){
+            throw new IllegalArgumentException("Indica il paziente per cui prenotare.");
+        }
+        var requesterDoctorId = actor.getRole() == Role.DOCTOR ? profileResolver.doctorIdOf(actor) : null;
+        return book(requestedPatientId, slotId, actor.getRole(), requesterDoctorId);
+    }
+
+    private AppointmentEntity book(Long patientId, Long slotId, Role bookedBy, Long requesterDoctorId) {
+        var patient = patientRepository.findById(patientId)
+                .filter(found -> !found.isAnonymized())
+                .orElseThrow(() -> new ResourceNotFoundException("Paziente " + patientId + " non trovato"));
+        var slot = availabilitySlotRepository.findById(slotId)
+                .orElseThrow(() -> new ResourceNotFoundException("Slot " + slotId + " non trovato"));
+
+        if(requesterDoctorId != null && !delegationService.isAuthorized(requesterDoctorId, slot.getDoctor().getId())){
+            throw new UnauthorizedAccessException("Il medico può prenotare solo sui propri slot.");
+        }
         if(slot.isBooked()){
             throw new SlotNotAvailableException("Slot già prenotato.");
         }
@@ -40,13 +71,13 @@ public class AppointmentService {
         assertPatientIsFree(patientId, slot);
         slot.setBooked(true);
 
-
         return appointmentRepository.save(AppointmentEntity
                 .builder()
                 .status(AppointmentStatus.BOOKED)
                 .patient(patient)
                 .slot(slot)
                 .noShowRisk(noShowRiskCalculator.calculateRisk(patientId))
+                .bookedByRole(bookedBy)
                 .build());
     }
 

@@ -8,6 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -28,5 +29,11 @@ public class PriceListService {
         entry.setPrice(newPrice);
         return entry;
     }
+
+    @Transactional(readOnly = true)
+    public Optional<BigDecimal> standardPriceOf(Long specId) {
+        return priceListRepository.findBySpecializationIdAndVisitType(specId, BillingService.STANDARD_VISIT_TYPE).map(PriceListEntity::getPrice);
+    }
+
 
 }

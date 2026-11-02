@@ -1,6 +1,7 @@
 package com.dc.medapp.medappbe.schedule;
 
 import com.dc.medapp.medappbe.auth.UserEntity;
+import com.dc.medapp.medappbe.billing.PriceListService;
 import com.dc.medapp.medappbe.schedule.dto.BulkSlotRequest;
 import com.dc.medapp.medappbe.schedule.dto.SlotRequest;
 import com.dc.medapp.medappbe.schedule.dto.SlotResponse;
@@ -20,6 +21,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ScheduleController {
     private final ScheduleService scheduleService;
+    private final PriceListService priceListService;
 
     @PostMapping("/slot")
     @PreAuthorize(("hasAnyRole('ADMIN', 'DOCTOR')"))
@@ -40,7 +42,8 @@ public class ScheduleController {
                                                                  @RequestParam(required = false) Long doctorId,
                                                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate from,
                                                                  @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate to) {
-        return ResponseEntity.ok(scheduleService.searchAvailability(specializationId, doctorId, from, to).stream().map(SlotResponse::fromEntity).toList());
+        var price = priceListService.standardPriceOf(specializationId).orElse(null);
+        return ResponseEntity.ok(scheduleService.searchAvailability(specializationId, doctorId, from, to).stream().map(x -> SlotResponse.fromEntity(x, price)).toList());
     }
 
     @GetMapping("/slots/me")

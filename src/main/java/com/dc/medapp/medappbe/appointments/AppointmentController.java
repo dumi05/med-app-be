@@ -23,9 +23,9 @@ public class AppointmentController {
     private final ProfileResolver profileResolver;
 
     @PostMapping
-    @PreAuthorize("hasRole('PATIENT')")
+    @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
     public ResponseEntity<AppointmentResponse> create(@AuthenticationPrincipal UserEntity user, @Valid @RequestBody CreateAppointmentRequest request){
-        var appointment = appointmentService.createAppointment(profileResolver.patientIdOf(user), request.slotId());
+        var appointment = appointmentService.createAppointmentAs(user, request.slotId(), request.patientId());
         return ResponseEntity.ok(AppointmentResponse.fromEntity(appointment, false));
     }
 
@@ -55,6 +55,5 @@ public class AppointmentController {
                         .map(app -> AppointmentResponse.fromEntity(app, !isPatient))
                         .toList()
         );
-
     }
 }

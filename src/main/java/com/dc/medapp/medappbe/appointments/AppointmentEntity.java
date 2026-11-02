@@ -1,5 +1,6 @@
 package com.dc.medapp.medappbe.appointments;
 
+import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.common.AuditableEntity;
 import com.dc.medapp.medappbe.patient.PatientEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
@@ -30,6 +31,10 @@ public class AppointmentEntity extends AuditableEntity {
 
     @Column(name = "no_show_risk", nullable = false)
     private boolean noShowRisk;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "booked_by_role")
+    private Role bookedByRole;
 
     private Instant completedAt;
     private Instant reportedAt;
