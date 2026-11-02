@@ -98,6 +98,16 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.BAD_REQUEST, "INVALID_CURRENT_PASSWORD", ex.getMessage());
     }
 
+    @ExceptionHandler(EmailAlreadyInUseException.class)
+    public ResponseEntity<ErrorResponse> handleEmailAlreadyInUseException(EmailAlreadyInUseException ex) {
+        return build(HttpStatus.CONFLICT, "EMAIL_ALREADY_IN_USE", ex.getMessage());
+    }
+
+    @ExceptionHandler(SpecializationAlreadyExistsException.class)
+    public ResponseEntity<ErrorResponse> handleSpecializationAlreadyExistsException(SpecializationAlreadyExistsException ex) {
+        return build(HttpStatus.CONFLICT, "SPECIALIZATION_ALREADY_EXISTS", ex.getMessage());
+    }
+
     private ResponseEntity<ErrorResponse> build(HttpStatus httpStatus, String code, String message) {
         return ResponseEntity.status(httpStatus).body(new ErrorResponse(code, message, Instant.now()));
     }

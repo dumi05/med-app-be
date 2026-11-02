@@ -143,15 +143,6 @@ public class AuthControllerTest {
     }
 
     @Test
-    void register_withTheSameEmailInAnotherCase_returns400() throws Exception {
-        register("carla.neri@test.com", ApiTestClient.PASSWORD).andExpect(status().isOk());
-
-        register("CARLA.NERI@test.com", ApiTestClient.PASSWORD)
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
-    }
-
-    @Test
     void login_doesNotApplyThePasswordRules_soAnOldWeakPasswordStillWorks() throws Exception {
         var user = userRepository.save(UserEntity.builder()
                 .email("old.weak@test.com").passwordHash(passwordEncoder.encode("abc")).role(Role.PATIENT).build());
@@ -189,5 +180,23 @@ public class AuthControllerTest {
                         .content(objectMapper.writeValueAsString(loginReq)))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
+    }
+
+    @Test
+    void register_withTheSameEmailTwice_returns409() throws Exception {
+        register("mario.bianchi@test.com", ApiTestClient.PASSWORD).andExpect(status().isOk());
+
+        register("MARIO.BIANCHI@test.com", ApiTestClient.PASSWORD)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_IN_USE"));
+    }
+
+    @Test
+    void register_withAnEmailWithADotInTheName_thenWithTheSameOne_returns409() throws Exception {
+        register("pippo.baudo@gmail.com", ApiTestClient.PASSWORD).andExpect(status().isOk());
+
+        register("PIPPO.BAUDO@gmail.com", ApiTestClient.PASSWORD)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_IN_USE"));
     }
 }

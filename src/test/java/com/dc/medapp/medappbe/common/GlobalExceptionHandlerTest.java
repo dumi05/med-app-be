@@ -127,4 +127,22 @@ public class GlobalExceptionHandlerTest {
         assertThat(handler.handleAccountLockedException(new AccountLockedException(Duration.ofSeconds(61))).getBody().message())
                 .endsWith("2 minuti.");
     }
+
+    @Test
+    void handleEmailAlreadyInUse_returns409() {
+        var response = handler.handleEmailAlreadyInUseException(new EmailAlreadyInUseException());
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().code()).isEqualTo("EMAIL_ALREADY_IN_USE");
+        assertThat(response.getBody().message()).isEqualTo("Questa email è già registrata.");
+    }
+
+    @Test
+    void handleSpecializationAlreadyExists_returns409() {
+        var response = handler.handleSpecializationAlreadyExistsException(new SpecializationAlreadyExistsException("Cardiologia"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().code()).isEqualTo("SPECIALIZATION_ALREADY_EXISTS");
+        assertThat(response.getBody().message()).contains("Cardiologia");
+    }
 }

@@ -47,7 +47,7 @@ public class AuthService {
         passwordPolicy.requireValid(request.password(), email, request.firstName(), request.lastName());
 
         if(userRepository.existsByEmailIgnoreCase(email)) {
-            throw new IllegalArgumentException("L'email è già in uso.");
+            throw new EmailAlreadyInUseException();
         }
 
         var user = UserEntity.builder()

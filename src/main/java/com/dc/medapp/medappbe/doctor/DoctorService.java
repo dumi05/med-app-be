@@ -7,6 +7,7 @@ import com.dc.medapp.medappbe.auth.PasswordPolicy;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.auth.UserRepository;
+import com.dc.medapp.medappbe.common.exception.EmailAlreadyInUseException;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.validation.EmailPolicy;
@@ -38,7 +39,7 @@ public class DoctorService {
                 .orElseThrow(() -> new ResourceNotFoundException("Specializzazione non trovata: " + specializationId));
 
         if(userRepository.existsByEmailIgnoreCase(email)) {
-            throw new IllegalArgumentException("Email già in uso: " + email);
+            throw new EmailAlreadyInUseException();
         }
         var user = userRepository.save(UserEntity.builder().email(email).passwordHash(passwordEncoder.encode(password)).role(Role.DOCTOR).mustChangePassword(true).build());
 

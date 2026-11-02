@@ -113,13 +113,13 @@ public class DoctorControllerTest {
     }
 
     @Test
-    void createDoctor_withTheSameEmailInAnotherCase_returns400() throws Exception {
+    void createDoctor_withTheSameEmailInAnotherCase_returns409() throws Exception {
         var adminToken = createAdminAndLogin("admin.rules4@test.it");
         postDoctor(adminToken, validRequest("same.case@test.it")).andExpect(status().isOk());
 
         postDoctor(adminToken, validRequest("SAME.CASE@test.it"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_IN_USE"));
     }
 
     @Test
@@ -130,13 +130,13 @@ public class DoctorControllerTest {
     }
 
     @Test
-    void createDoctor_withExistingEmail_returns400() throws Exception {
+    void createDoctor_withExistingEmail_returns409() throws Exception {
         var adminToken = createAdminAndLogin("admin.doc@test.com");
         postDoctor(adminToken, validRequest("duplicated.doc@test.ok"))
                 .andExpect(status().isOk());
         postDoctor(adminToken, validRequest("duplicated.doc@test.ok"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_IN_USE"));
     }
 
     @Test
