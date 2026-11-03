@@ -11,6 +11,8 @@ import com.dc.medapp.medappbe.common.exception.EmailAlreadyInUseException;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
 import com.dc.medapp.medappbe.common.validation.EmailPolicy;
+import com.dc.medapp.medappbe.schedule.WorkingHoursRepository;
+import com.dc.medapp.medappbe.schedule.WorkingHoursService;
 import com.dc.medapp.medappbe.specialization.SpecializationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -29,6 +31,7 @@ public class DoctorService {
     private final PasswordEncoder passwordEncoder;
     private final AppointmentRepository appointmentRepository;
     private final PasswordPolicy passwordPolicy;
+    private final WorkingHoursService workingHoursService;
 
     @Transactional
     @Audited(action = "WRITE_DOCTOR", entity = "Doctor")
@@ -45,7 +48,9 @@ public class DoctorService {
 
         var doctor = DoctorEntity.builder().user(user).firstName(firstName).lastName(lastName).specialization(specialization).delegationConsent(delegationConsent).build();
 
-        return doctorRepository.save(doctor);
+        var saved = doctorRepository.save(doctor);
+        workingHoursService.applyDefaults(saved);
+        return saved;
     }
 
     @Transactional(readOnly = true)

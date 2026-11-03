@@ -20,3 +20,6 @@ app:
   security:
     max-failed-logins: 5
     lockout-minutes: 15
+  schedule:
+    generation:
+      cron: "-"

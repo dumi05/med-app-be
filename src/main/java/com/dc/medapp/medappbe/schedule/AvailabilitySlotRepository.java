@@ -1,6 +1,7 @@
 package com.dc.medapp.medappbe.schedule;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -29,4 +30,10 @@ public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySl
     List<AvailabilitySlotEntity> findAvailableByDoctor(Long specializationId, Long doctorId, LocalDateTime start, LocalDateTime end, LocalDateTime now);
 
     List<AvailabilitySlotEntity> findByDoctorIdAndStartTimeBetweenOrderByStartTime(Long doctorId, LocalDateTime start, LocalDateTime end);
+
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("DELETE FROM AvailabilitySlotEntity s " +
+            "WHERE s.doctor.id = :doctorId AND s.generated = true AND s.booked = false AND s.startTime > :from " +
+            "AND NOT EXISTS (SELECT a.id from AppointmentEntity a where a.slot = s)")
+    int deleteFreeGeneratedFrom(Long doctorId, LocalDateTime from);
 }

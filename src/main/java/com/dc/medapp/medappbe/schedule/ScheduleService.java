@@ -94,7 +94,7 @@ public class ScheduleService {
                 .build();
     }
 
-    private DoctorEntity resolveDoctor(UserEntity actor, Long requestDoctorId) {
+    public DoctorEntity resolveDoctor(UserEntity actor, Long requestDoctorId) {
         Long doctorId = switch (actor.getRole()) {
             case ADMIN -> {
                 if(requestDoctorId == null){

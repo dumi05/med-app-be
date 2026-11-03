@@ -29,6 +29,10 @@ public class AvailabilitySlotEntity extends BaseEntity {
     @Column(name = "booked", nullable = false)
     private boolean booked;
 
+    @Builder.Default
+    @Column(name = "generated", nullable = false, columnDefinition = "boolean default false")
+    private boolean generated = false;
+
     public LocalDateTime endTime() {
         return startTime.plusMinutes(durationMinutes);
     }

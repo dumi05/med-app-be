@@ -177,7 +177,7 @@ public class AppointmentLifecycleIntegrationTest {
         api.postAs(adminToken, "/api/v1/doctors", new CreateDoctorRequest(DOCTOR_EMAIL, ApiTestClient.PASSWORD, "Giulia", "Verdi",  specId, true))
                 .andExpect(status().isOk());
         doctorToken = api.firstLogin(DOCTOR_EMAIL, ApiTestClient.PASSWORD);
-        var startTime = LocalDateTime.now().plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0);
+        var startTime = LocalDateTime.now().plusDays(1).withHour(20).withMinute(0).withSecond(0).withNano(0);
         var slotId = json(api.postAs(doctorToken, "/api/v1/schedule/slot", new SlotRequest(null, startTime, 30))
                 .andExpect(status().isOk())).get("id").asLong();
         patientToken = api.registerPatient(PATIENT_EMAIL);
@@ -198,7 +198,7 @@ public class AppointmentLifecycleIntegrationTest {
                             new CreateDoctorRequest(email, ApiTestClient.PASSWORD, "Giulia", "Verdi", specializationId, true))
                     .andExpect(status().isOk());
             var created = json(api.postAs(api.firstLogin(email, ApiTestClient.PASSWORD), "/api/v1/schedule/slots/bulk",
-                            new BulkSlotRequest(null, date, LocalTime.of(10, 0), LocalTime.of(10, 30), 30))
+                            new BulkSlotRequest(null, date, LocalTime.of(20, 0), LocalTime.of(20, 30), 30))
                     .andExpect(status().isOk()));
             slotIds.add(created.get(0).get("id").asLong());
         }

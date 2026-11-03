@@ -131,8 +131,9 @@ public class DoctorManagementServiceTest {
     @Test
     void searchAvailability_excludesTheSlotsOfDeactivatedDoctors() {
         var startTime = LocalDateTime.now().plusDays(1).withHour(9).withMinute(0).withSecond(0).withNano(0);
-        slotRepository.save(AvailabilitySlotEntity.builder().booked(false).durationMinutes(30).doctor(doctor).startTime(startTime).build());
-        assertThat(scheduleService.searchAvailability(cardiology.getId(), null, startTime.toLocalDate(), startTime.toLocalDate())).hasSize(1);
+        var slot = slotRepository.save(AvailabilitySlotEntity.builder().booked(false).durationMinutes(30).doctor(doctor).startTime(startTime).build());
+        assertThat(scheduleService.searchAvailability(cardiology.getId(), null, startTime.toLocalDate(), startTime.toLocalDate()))
+                .extracting(AvailabilitySlotEntity::getId).contains(slot.getId());
 
         doctorService.deactivate(doctor.getId());
 

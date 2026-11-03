@@ -32,6 +32,11 @@ app:
     max-code-failures: ${MAX_DELEGATION_CODE_FAILURES:5}
     lock-minutes: ${DELEGATION_LOCK_MINUTES:15}
     access-minutes: ${DELEGATION_ACCESS_MINUTES:15}
+  schedule:
+    slot-minutes: ${SLOT_MINUTES:30}
+    horizon-weeks: ${HORIZON_WEEKS:8}
+    generation:
+      cron: ${SLOT_GENERATION_CRON:0 0 2 * * *}
 
 springdoc:
   swagger-ui:
