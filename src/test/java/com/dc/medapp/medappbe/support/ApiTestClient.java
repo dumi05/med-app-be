@@ -132,4 +132,8 @@ public class ApiTestClient {
                 .andReturn().getResponse().getContentAsString();
         return objectMapper.readTree(json).get("accessToken").asString();
     }
+
+    public ResultActions deleteAs(String token, String path) throws Exception {
+        return mockMvc.perform(delete(path).header("Authorization", "Bearer " + token));
+    }
 }
