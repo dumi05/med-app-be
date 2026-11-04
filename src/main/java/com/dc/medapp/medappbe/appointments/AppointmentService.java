@@ -5,6 +5,7 @@ import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
 import com.dc.medapp.medappbe.common.exception.*;
 import com.dc.medapp.medappbe.delegations.DoctorDelegationService;
+import com.dc.medapp.medappbe.leaves.DoctorLeaveRepository;
 import com.dc.medapp.medappbe.patient.PatientRepository;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotRepository;
@@ -28,6 +29,7 @@ public class AppointmentService {
     private final NoShowRiskCalculator noShowRiskCalculator;
     private final DoctorDelegationService delegationService;
     private final ProfileResolver profileResolver;
+    private final DoctorLeaveRepository leaveRepository;
 
     @Transactional
     @Audited(action = "BOOK_APPOINTMENT", entity = "Appointment")
@@ -59,6 +61,9 @@ public class AppointmentService {
         var slot = availabilitySlotRepository.findById(slotId)
                 .orElseThrow(() -> new ResourceNotFoundException("Slot " + slotId + " non trovato"));
 
+        if (leaveRepository.isAway(slot.getDoctor().getId(), slot.getStartTime().toLocalDate())) {
+            throw new SlotNotAvailableException("Il medico è assente in quel giorno.");
+        }
         if(requesterDoctorId != null && !delegationService.isAuthorized(requesterDoctorId, slot.getDoctor().getId())){
             throw new UnauthorizedAccessException("Il medico può prenotare solo sui propri slot.");
         }
@@ -106,6 +111,8 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.CANCELLED);
         appointment.setCancelledAt(Instant.now());
         appointment.getSlot().setBooked(false);
+        appointment.setCancellationReason(CancellationReason.PATIENT);
+        appointment.setCancelledAt(Instant.now());
         return appointment;
     }
 

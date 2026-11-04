@@ -6,6 +6,7 @@ import com.dc.medapp.medappbe.common.exception.SlotOverlapException;
 import com.dc.medapp.medappbe.common.exception.UnauthorizedAccessException;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
 import com.dc.medapp.medappbe.doctor.DoctorRepository;
+import com.dc.medapp.medappbe.leaves.DoctorLeaveRepository;
 import com.dc.medapp.medappbe.security.ProfileResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -30,6 +31,7 @@ public class ScheduleService {
     private final AvailabilitySlotRepository availabilitySlotRepository;
     private final DoctorRepository doctorRepository;
     private final ProfileResolver profileResolver;
+    private final DoctorLeaveRepository leaveRepository;
 
     @Transactional(readOnly = true)
     public List<AvailabilitySlotEntity> searchAvailability(Long specId, Long docId, LocalDate from, LocalDate to) {
@@ -56,6 +58,7 @@ public class ScheduleService {
         }
         var doctor = resolveDoctor(actor, requestDoctorId);
         assertNoOverlap(doctor.getId(), startTime, startTime.plusMinutes(durationMinutes));
+        assertNotAway(doctor.getId(), startTime.toLocalDate());
         return availabilitySlotRepository.save(newSlot(doctor, startTime, durationMinutes));
     }
 
@@ -82,6 +85,7 @@ public class ScheduleService {
              starts.add(first.plusMinutes((long) i * slotMinutes));
          }
          assertNoOverlap(doctor.getId(), first, first.plusMinutes((long) count * slotMinutes));
+         assertNotAway(doctor.getId(), date);
          return availabilitySlotRepository.saveAll(starts.stream().map(s -> newSlot(doctor, s, slotMinutes)).toList());
     }
 
@@ -133,6 +137,12 @@ public class ScheduleService {
         }
         if(ChronoUnit.DAYS.between(from, to) + 1 > MAX_SEARCH_DAYS){
             throw new IllegalArgumentException("L'intervallo può durare al massimo "+ MAX_SEARCH_DAYS + " giorni.");
+        }
+    }
+
+    private void assertNotAway(Long docId, LocalDate day){
+        if(leaveRepository.isAway(docId, day)){
+            throw new IllegalArgumentException("Il medico è assente in quel giorno.");
         }
     }
 }

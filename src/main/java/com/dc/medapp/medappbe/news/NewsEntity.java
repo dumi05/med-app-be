@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.news;
 
 import com.dc.medapp.medappbe.common.AuditableEntity;
 import com.dc.medapp.medappbe.doctor.DoctorEntity;
+import com.dc.medapp.medappbe.leaves.DoctorLeaveEntity;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -31,4 +32,8 @@ public class NewsEntity extends AuditableEntity {
     @Builder.Default
     @Column(name = "automatic", nullable = false, columnDefinition = "boolean default false")
     private boolean automatic = false;
+
+    @OneToOne
+    @JoinColumn(name = "leave_id", unique = true)
+    private DoctorLeaveEntity leave;
 }

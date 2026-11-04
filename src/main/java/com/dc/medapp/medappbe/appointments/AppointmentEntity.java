@@ -2,6 +2,7 @@ package com.dc.medapp.medappbe.appointments;
 
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.common.AuditableEntity;
+import com.dc.medapp.medappbe.doctor.DoctorEntity;
 import com.dc.medapp.medappbe.patient.PatientEntity;
 import com.dc.medapp.medappbe.schedule.AvailabilitySlotEntity;
 import jakarta.persistence.*;
@@ -35,6 +36,16 @@ public class AppointmentEntity extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "booked_by_role")
     private Role bookedByRole;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "cancellation_reason")
+    private CancellationReason cancellationReason;
+
+    @ManyToOne
+    @JoinColumn(name = "reassigned_from_id")
+    private DoctorEntity reassignedFrom;
+
+    private Instant reassignedAt;
 
     private Instant completedAt;
     private Instant reportedAt;

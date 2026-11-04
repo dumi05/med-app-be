@@ -10,4 +10,5 @@ import java.util.List;
 public interface NewsRepository extends JpaRepository<NewsEntity, Long> {
     List<NewsEntity> findByExpiresAtGreaterThanEqualOrderByCreatedAtDescIdDesc(LocalDate today);
     List<NewsEntity> findByAuthorIdOrderByCreatedAtDescIdDesc(Long id);
+    void deleteByLeaveId(Long leaveId);
 }

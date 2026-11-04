@@ -20,4 +20,8 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
 
     boolean existsBySlotDoctorIdAndStatusAndSlotStartTimeAfter(Long doctorId, AppointmentStatus status, LocalDateTime time);
     List<AppointmentEntity> findByPatientIdAndStatus(Long patientId, AppointmentStatus status);
+
+    @Query("SELECT a from AppointmentEntity a WHERE a.status = com.dc.medapp.medappbe.appointments.AppointmentStatus.BOOKED " +
+            "AND a.slot.doctor.id = :docId and a.slot.startTime >= :from AND a.slot.startTime < :to ORDER BY a.slot.startTime")
+    List<AppointmentEntity> findBookedOfDoctorBetween(Long docId, LocalDateTime from, LocalDateTime to);
 }

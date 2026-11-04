@@ -37,6 +37,7 @@ app:
     horizon-weeks: ${HORIZON_WEEKS:8}
     generation:
       cron: ${SLOT_GENERATION_CRON:0 0 2 * * *}
+    leave-notice-days: ${LEAVE_NOTICE_DAYS:7}
 
 springdoc:
   swagger-ui:

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySlotEntity, Long> {
@@ -16,6 +17,8 @@ public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySl
             "AND s.doctor.user.enabled = true " +
             "AND s.startTime between :start and :end " +
             "AND s.startTime > :now " +
+            "AND NOT EXISTS (SELECT l.id FROM DoctorLeaveEntity l where l.doctor = s.doctor " +
+            "AND l.startDate <= CAST(s.startTime AS LocalDate) and l.endDate >= CAST(s.startTime as LocalDate)) " +
             "order by s.startTime, s.id")
     List<AvailabilitySlotEntity> findAvailableSlotsBySpecializationIdAndDateRange(Long specializationId, LocalDateTime start, LocalDateTime end, LocalDateTime now);
 
@@ -26,6 +29,8 @@ public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySl
             "AND s.doctor.user.enabled = true " +
             "AND s.startTime BETWEEN :start AND :end " +
             "AND s.startTime > :now " +
+            "AND NOT EXISTS (SELECT l.id FROM DoctorLeaveEntity l where l.doctor = s.doctor " +
+            "AND l.startDate <= CAST(s.startTime AS LocalDate) and l.endDate >= CAST(s.startTime as LocalDate)) " +
             "ORDER BY s.startTime, s.id")
     List<AvailabilitySlotEntity> findAvailableByDoctor(Long specializationId, Long doctorId, LocalDateTime start, LocalDateTime end, LocalDateTime now);
 
@@ -36,4 +41,6 @@ public interface AvailabilitySlotRepository extends JpaRepository<AvailabilitySl
             "WHERE s.doctor.id = :doctorId AND s.generated = true AND s.booked = false AND s.startTime > :from " +
             "AND NOT EXISTS (SELECT a.id from AppointmentEntity a where a.slot = s)")
     int deleteFreeGeneratedFrom(Long doctorId, LocalDateTime from);
+
+    Optional<AvailabilitySlotEntity> findFirstByDoctorIdAndStartTimeAndBookedFalse(Long docId, LocalDateTime startTime);
 }
