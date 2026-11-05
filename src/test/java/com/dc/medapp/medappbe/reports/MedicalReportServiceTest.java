@@ -58,6 +58,8 @@ public class MedicalReportServiceTest {
     private PriceListRepository priceListRepository;
     @Autowired
     private InvoiceItemRepository invoiceItemRepository;
+    @Autowired
+    private BillingService billingService;
 
     private SpecializationEntity specialization;
     private DoctorEntity doctor;
@@ -70,24 +72,25 @@ public class MedicalReportServiceTest {
         doctor = createDoctor("report.doctor@test.it");
         patient = createPatient("report.patient@test.it");
 
-        var booked = bookAppointment(patient, doctor, 1);
-        completedAppointment = appointmentService.completeVisit(booked.getId(), doctor.getId());
-
         priceListRepository.save(PriceListEntity.builder()
                 .specialization(specialization)
                 .visitType(BillingService.STANDARD_VISIT_TYPE)
                 .price(new BigDecimal("100.00"))
                 .build());
+
+        var booked = bookAppointment(patient, doctor, 1);
+        completedAppointment = appointmentService.completeVisit(booked.getId(), doctor.getId());
+        billingService.issueInvoiceItem(completedAppointment);
     }
 
     @Test
-    void createReport_storesTheReportAndInvoicesTheAppointment() {
+    void createReport_storesTheReport_andTheAppointmentBecomesReported() {
         var report = reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null);
 
         assertThat(report.getId()).isNotNull();
         assertThat(report.getDiagnosisText()).isEqualTo("Nessun risultato.");
         assertThat(report.getCompletedAt()).isNotNull();
-        assertThat(completedAppointment.getStatus()).isEqualTo(AppointmentStatus.INVOICED);
+        assertThat(completedAppointment.getStatus()).isEqualTo(AppointmentStatus.REPORTED);
         assertThat(completedAppointment.getReportedAt()).isNotNull();
         assertThat(completedAppointment.getInvoicedAt()).isNotNull();
     }
@@ -191,18 +194,20 @@ public class MedicalReportServiceTest {
     }
 
     @Test
-    void createReport_issuesTheInvoiceItemWithTheListPrice() {
-        reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null);
+    void createReport_throwsInvalidStateTransitionException_whenThePaymentWasNotConfirmedYet(){
+        var booked = bookAppointment(patient, doctor, 4);
+        var completedOnly = appointmentService.completeVisit(booked.getId(),doctor.getId());
 
-        var item = invoiceItemRepository.findByAppointmentId(completedAppointment.getId()).orElseThrow();
-        assertThat(item.getAmount()).isEqualByComparingTo("100.00");
+        assertThrows(InvalidStateTransitionException.class, () -> reportService.createReport(doctor.getUser(), completedOnly.getId(), "Nessun risultato.", null));
+        assertThat(completedOnly.getStatus()).isEqualTo(AppointmentStatus.COMPLETED);
     }
-
     @Test
-    void createReport_throwsResourceNotFoundException_whenThereIsNoPriceForTheSpecialization() {
+    void createReport_doesNotNeedThePriceAnymore_theInvoiceWasIssuedBefore() {
         priceListRepository.deleteAll();
 
-        assertThrows(ResourceNotFoundException.class, () -> reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null));
+        var report = reportService.createReport(doctor.getUser(), completedAppointment.getId(), "Nessun risultato.", null);
+
+        assertThat(report.getId()).isNotNull();
     }
 
     private AppointmentEntity bookAppointment(PatientEntity forPatient, DoctorEntity withDoctor, int daysFromNow) {

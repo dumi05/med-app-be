@@ -6,7 +6,6 @@ import com.dc.medapp.medappbe.appointments.AppointmentStatus;
 import com.dc.medapp.medappbe.audit.Audited;
 import com.dc.medapp.medappbe.auth.Role;
 import com.dc.medapp.medappbe.auth.UserEntity;
-import com.dc.medapp.medappbe.billing.BillingService;
 import com.dc.medapp.medappbe.common.exception.FileTooLargeException;
 import com.dc.medapp.medappbe.common.exception.InvalidStateTransitionException;
 import com.dc.medapp.medappbe.common.exception.ResourceNotFoundException;
@@ -35,7 +34,6 @@ public class MedicalReportService {
     private final AppointmentRepository appointmentRepository;
     private final ProfileResolver profileResolver;
     private final DoctorDelegationService delegationService;
-    private final BillingService billingService;
     private final AttachmentStorage attachmentStorage;
 
     @Transactional
@@ -47,8 +45,8 @@ public class MedicalReportService {
             throw new UnauthorizedAccessException("Solo il medico dell'appuntamento può scrivere il referto.");
         }
 
-        if(appointment.getStatus() != AppointmentStatus.COMPLETED){
-            throw new InvalidStateTransitionException("Impossibile redigere il report in stato " + appointment.getStatus());
+        if(appointment.getStatus() != AppointmentStatus.INVOICED){
+            throw new InvalidStateTransitionException("Il referto si scrive dopo il pagamento: impossibile redigerlo in stato " + appointment.getStatus());
         }
 
         var type = file == null ? null : checkFile(file);
@@ -68,8 +66,6 @@ public class MedicalReportService {
 
             appointment.setStatus(AppointmentStatus.REPORTED);
             appointment.setReportedAt(Instant.now());
-
-            billingService.issueInvoiceItem(appointment);
 
             return result;
         } catch (RuntimeException e) {

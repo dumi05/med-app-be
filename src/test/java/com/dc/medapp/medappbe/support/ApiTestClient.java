@@ -113,8 +113,11 @@ public class ApiTestClient {
                         .content(objectMapper.writeValueAsString(body))
         );
     }
-
     public ResultActions postReport(String token, CreateMedicalReportRequest req, MockMultipartFile file) throws Exception {
+        postAs(token, "/api/v1/appointments/"+req.appointmentId()+"/invoice", null);
+        return postReportWithoutInvoice(token,req,file);
+    }
+    public ResultActions postReportWithoutInvoice(String token, CreateMedicalReportRequest req, MockMultipartFile file) throws Exception {
         var builder = multipart("/api/v1/medical-reports")
                 .file(new MockMultipartFile("report", "", "application/json", objectMapper.writeValueAsBytes(req)))
                 .header("Authorization", "Bearer "+token);

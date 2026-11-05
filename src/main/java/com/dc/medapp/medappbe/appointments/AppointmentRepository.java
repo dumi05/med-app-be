@@ -24,4 +24,8 @@ public interface AppointmentRepository extends JpaRepository<AppointmentEntity, 
     @Query("SELECT a from AppointmentEntity a WHERE a.status = com.dc.medapp.medappbe.appointments.AppointmentStatus.BOOKED " +
             "AND a.slot.doctor.id = :docId and a.slot.startTime >= :from AND a.slot.startTime < :to ORDER BY a.slot.startTime")
     List<AppointmentEntity> findBookedOfDoctorBetween(Long docId, LocalDateTime from, LocalDateTime to);
+
+    @Query("SELECT a FROM AppointmentEntity a WHERE a.status = com.dc.medapp.medappbe.appointments.AppointmentStatus.INVOICED " +
+            "AND EXISTS (SELECT r.id FROM MedicalReportEntity r where r.appointment = a)")
+    List<AppointmentEntity> findInvoicedWithReport();
 }

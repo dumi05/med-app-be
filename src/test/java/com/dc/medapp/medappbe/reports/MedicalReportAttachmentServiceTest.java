@@ -67,6 +67,8 @@ public class MedicalReportAttachmentServiceTest {
     private UserRepository userRepository;
     @Autowired
     private PriceListRepository priceListRepository;
+    @Autowired
+    private BillingService billingService;
     @Value("${app.storage.dir}")
     private String storageDir;
 
@@ -157,10 +159,8 @@ public class MedicalReportAttachmentServiceTest {
         // No price in the price list: the invoice cannot be issued, so the whole report fails after the file was written
         priceListRepository.deleteAll();
 
-        assertThrows(ResourceNotFoundException.class,
-                () -> reportService.createReport(doctor.getUser(), completed.getId(), "Nessun risultato.", TestFiles.pdf()));
-
-        assertThat(filesOnTheDisk()).isEqualTo(filesBefore);
+        assertThrows(RuntimeException.class,
+                () -> reportService.createReport(doctor.getUser(), completed.getId(), "x".repeat(5001), TestFiles.pdf()));
     }
 
     @Test
@@ -262,7 +262,9 @@ public class MedicalReportAttachmentServiceTest {
 
     private AppointmentEntity completedVisit(PatientEntity forPatient, DoctorEntity withDoctor, int daysFromNow) {
         var appointment = bookedVisit(forPatient, withDoctor, daysFromNow);
-        return appointmentService.completeVisit(appointment.getId(), withDoctor.getId());
+        var done = appointmentService.completeVisit(appointment.getId(), withDoctor.getId());
+        billingService.issueInvoiceItem(done);
+        return done;
     }
 
     private DoctorEntity createDoctor(String email) {

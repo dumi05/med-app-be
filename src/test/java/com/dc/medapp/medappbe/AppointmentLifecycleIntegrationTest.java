@@ -89,15 +89,29 @@ public class AppointmentLifecycleIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("BOOKED"))).get("id").asLong();
 
-        api.postAs(doctorToken, "/api/v1/appointments/"+appointmentId+"/complete", null)
+        api.postAs(doctorToken, "/api/v1/appointments/" + appointmentId + "/complete", null).andExpect(status().isOk());
+        // the report cannot be written before the payment is confirmed
+        api.postReportWithoutInvoice(doctorToken, new CreateMedicalReportRequest(appointmentId, DIAGNOSIS), null)
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.code").value("INVALID_STATE_TRANSITION"));
+        api.getAs(patientToken, "/api/v1/appointments/" + appointmentId + "/invoice").andExpect(status().isNotFound());
+
+        // the doctor confirms the payment: the invoice exists and the patient downloads it
+        api.postAs(doctorToken, "/api/v1/appointments/" + appointmentId + "/invoice", null)
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.status").value("COMPLETED"));
-        api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, DIAGNOSIS), null)
+                .andExpect(jsonPath("$.number").isNotEmpty())
+                .andExpect(jsonPath("$.amount").value(100.0));
+        api.getAs(patientToken, "/api/v1/appointments/me").andExpect(jsonPath("$[0].status").value("INVOICED"));
+        api.getAs(patientToken, "/api/v1/appointments/" + appointmentId + "/invoice/pdf")
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.content().contentType("application/pdf"));
+
+        api.postReportWithoutInvoice(doctorToken, new CreateMedicalReportRequest(appointmentId, DIAGNOSIS), null)
                 .andExpect(status().isOk());
 
         api.getAs(patientToken, "/api/v1/appointments/me")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("INVOICED"));
+                .andExpect(jsonPath("$[0].status").value("REPORTED"));
         api.getAs(patientToken, "/api/v1/medical-reports?appointmentId="+appointmentId)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.diagnosisText").value(DIAGNOSIS));
@@ -105,7 +119,7 @@ public class AppointmentLifecycleIntegrationTest {
         api.getAs(adminToken, "/api/v1/dashboard/kpi")
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.totalAppointments").value(1))
-                .andExpect(jsonPath("$.appointmentsByStatus.INVOICED").value(1))
+                .andExpect(jsonPath("$.appointmentsByStatus.REPORTED").value(1))
                 .andExpect(jsonPath("$.totalRevenue").value(100.0));
         var log = api.getAs(adminToken, "/api/v1/audit-logs?limit=200").andExpect(status().isOk());
         for (var action : new String[]{"BOOK_APPOINTMENT", "COMPLETE_VISIT", "WRITE_REPORT", "ISSUE_INVOICE", "READ_REPORT"}) {
@@ -162,7 +176,7 @@ public class AppointmentLifecycleIntegrationTest {
 
         api.getAs(doctorToken, "/api/v1/appointments/me")
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("INVOICED"))
+                .andExpect(jsonPath("$[0].status").value("REPORTED"))
                 .andExpect(jsonPath("$[0].patientLastName").value("Anonimizzato"));
         api.getAs(adminToken, "/api/v1/dashboard/kpi")
                 .andExpect(jsonPath("$.totalRevenue").value(100.0));

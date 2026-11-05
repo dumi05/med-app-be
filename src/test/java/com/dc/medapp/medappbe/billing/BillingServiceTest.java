@@ -25,6 +25,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -55,7 +56,7 @@ public class BillingServiceTest {
     private UserRepository userRepository;
 
     private SpecializationEntity specialization;
-    private AppointmentEntity reportedAppointment;
+    private AppointmentEntity completedAppointment;
     private PriceListEntity price;
 
     @BeforeEach
@@ -68,25 +69,26 @@ public class BillingServiceTest {
         var slot = slotRepository.save(AvailabilitySlotEntity.builder().doctor(doctor).startTime(LocalDateTime.now().plusDays(1)).durationMinutes(30).booked(false).build());
 
         var booked = appointmentService.createAppointment(patient.getId(), slot.getId());
-        reportedAppointment = appointmentService.completeVisit(booked.getId(),doctor.getId());
-        reportedAppointment.setStatus(AppointmentStatus.REPORTED);
+        completedAppointment = appointmentService.completeVisit(booked.getId(),doctor.getId());
     }
 
     @Test
     void issueInvoiceItem_storesTheListPriceAndMarksAppointmentAsInvoiced() {
-        var item = billingService.issueInvoiceItem(reportedAppointment);
+        var item = billingService.issueInvoiceItem(completedAppointment);
 
         assertThat(item.getId()).isNotNull();
         assertThat(item.getAmount()).isEqualByComparingTo("100.00");
         assertThat(item.getIssuedAt()).isNotNull();
-        assertThat(reportedAppointment.getStatus()).isEqualTo(AppointmentStatus.INVOICED);
-        assertThat(reportedAppointment.getInvoicedAt()).isNotNull();
-        assertThat(invoiceItemRepository.findByAppointmentId(reportedAppointment.getId())).isPresent();
+        assertThat(item.getPaidAt()).isEqualTo(item.getIssuedAt());
+        assertThat(item.getNumber()).isEqualTo("FT-%d-%05d", LocalDate.now().getYear(), item.getId());
+        assertThat(completedAppointment.getStatus()).isEqualTo(AppointmentStatus.INVOICED);
+        assertThat(completedAppointment.getInvoicedAt()).isNotNull();
+        assertThat(invoiceItemRepository.findByAppointmentId(completedAppointment.getId())).isPresent();
     }
 
     @Test
     void issueInvoiceItem_keepsTheIssuedAmount_whenThePriceListChangesLater() {
-        var item = billingService.issueInvoiceItem(reportedAppointment);
+        var item = billingService.issueInvoiceItem(completedAppointment);
 
         price.setPrice(new BigDecimal("150.00"));
         priceListRepository.save(price);
@@ -95,24 +97,42 @@ public class BillingServiceTest {
     }
 
     @Test
-    void issueInvoiceItem_throwsInvalidStateTransitionException_whenAppointmentIsNotReported(){
-        reportedAppointment.setStatus(AppointmentStatus.COMPLETED);
+    void issueInvoiceItem_throwsInvalidStateTransitionException_whenAlreadyInvoiced() {
+        billingService.issueInvoiceItem(completedAppointment);
 
-        assertThrows(InvalidStateTransitionException.class, () -> billingService.issueInvoiceItem(reportedAppointment));
+        assertThrows(InvalidStateTransitionException.class, () -> billingService.issueInvoiceItem(completedAppointment));
     }
 
     @Test
-    void issueInvoiceItem_throwsInvalidStateTransitionException_whenAlreadyInvoiced() {
-        billingService.issueInvoiceItem(reportedAppointment);
+    void issueInvoicedItem_throwsInvalidStateTransitionException_forABookedVisit(){
+        completedAppointment.setStatus(AppointmentStatus.BOOKED);
 
-        assertThrows(InvalidStateTransitionException.class, () -> billingService.issueInvoiceItem(reportedAppointment));
+        assertThrows(InvalidStateTransitionException.class, () -> billingService.issueInvoiceItem(completedAppointment));
+        assertThat(invoiceItemRepository.findByAppointmentId(completedAppointment.getId())).isEmpty();
+    }
+
+    @Test
+    void issueInvoicedItem_keepsTheIssuedAmount_whenThePriceListChangesLater(){
+        var item = billingService.issueInvoiceItem(completedAppointment);
+
+        price.setPrice(new BigDecimal("150.00"));
+        priceListRepository.save(price);
+
+        assertThat(invoiceItemRepository.findByAppointmentId(completedAppointment.getId()).orElseThrow().getAmount()).isEqualByComparingTo("100.00");
+    }
+
+    @Test
+    void issueInvoicedItem_throwsInvalidStateTransitionException_whenAppointmentIsNotCompleted(){
+        completedAppointment.setStatus(AppointmentStatus.REPORTED);
+
+        assertThrows(InvalidStateTransitionException.class, () -> billingService.issueInvoiceItem(completedAppointment));
     }
 
     @Test
     void issueInvoiceItem_throwsResourceNotFoundException_whenThereIsNoPriceForTheSpecialization(){
         priceListRepository.deleteAll();
 
-        assertThrows(ResourceNotFoundException.class, () -> billingService.issueInvoiceItem(reportedAppointment));
+        assertThrows(ResourceNotFoundException.class, () -> billingService.issueInvoiceItem(completedAppointment));
     }
 
     private DoctorEntity createDoctor(String email) {

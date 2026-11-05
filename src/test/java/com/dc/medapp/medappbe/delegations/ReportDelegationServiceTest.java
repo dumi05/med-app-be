@@ -54,6 +54,7 @@ public class ReportDelegationServiceTest {
     @Autowired private PriceListRepository priceListRepository;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private DelegationAccessService accessService;
+    @Autowired private BillingService billingService;
 
     private PatientEntity patient;
     private DoctorEntity doctor;
@@ -78,7 +79,8 @@ public class ReportDelegationServiceTest {
                         .build());
         patient = createPatient("patient@test.com");
         var appointment = appointmentService.createAppointment(patient.getId(), slot(1).getId());
-        appointmentService.completeVisit(appointment.getId(), doctor.getId());
+        var done = appointmentService.completeVisit(appointment.getId(), doctor.getId());
+        billingService.issueInvoiceItem(done);
         medicalReportService.createReport(doctor.getUser(), appointment.getId(), "Nessun risultato.", null);
     }
 

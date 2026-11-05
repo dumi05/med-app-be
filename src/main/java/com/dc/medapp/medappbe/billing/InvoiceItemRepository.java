@@ -28,4 +28,6 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItemEntity, 
         ORDER BY s.name
     """)
     List<SpecializationRevenueView> sumAmountBySpecialization();
+
+    List<InvoiceItemEntity> findByNumberIsNull();
 }

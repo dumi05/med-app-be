@@ -91,7 +91,7 @@ public class MedicalReportControllerTest {
     }
 
     @Test
-    void doc_canWriteTheReport_andTheAppointmentBecomesInvoiced() throws Exception {
+    void doc_canWriteTheReport_andTheAppointmentBecomesReported() throws Exception {
         postReport(doctorToken, createMedicalReportReq(completedAppointmentId, "Nessun risultato."))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
@@ -100,7 +100,7 @@ public class MedicalReportControllerTest {
 
         mockMvc.perform(get("/api/v1/appointments/me").header("Authorization", "Bearer " + patientToken))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].status").value("INVOICED"));
+                .andExpect(jsonPath("$[0].status").value("REPORTED"));
     }
 
     @Test
@@ -280,6 +280,7 @@ public class MedicalReportControllerTest {
                 .andExpect(status().isOk());
     }
 
+
     private ResultActions postReport(String token, CreateMedicalReportRequest req) throws Exception {
         return postReport(token, req, null);
     }
@@ -292,6 +293,8 @@ public class MedicalReportControllerTest {
     }
 
     private ResultActions postReport(String token, CreateMedicalReportRequest req, MockMultipartFile file) throws Exception {
+        mockMvc.perform(post("/api/v1/appointments/" + req.appointmentId() + "/invoice")
+                .header("Authorization", "Bearer " + token));   // esito ignorato
         var request = multipart("/api/v1/medical-reports")
                 .file(new MockMultipartFile("report", "", "application/json", objectMapper.writeValueAsBytes(req)))
                 .header("Authorization", "Bearer " + token);

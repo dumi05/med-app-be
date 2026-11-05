@@ -26,4 +26,10 @@ public class InvoiceItemEntity extends AuditableEntity {
 
     @Column(name = "issued_at", nullable = false)
     private Instant issuedAt;
+
+    @Column(name = "paid_at")
+    private Instant paidAt;
+
+    @Column(name = "invoice_number", unique = true)
+    private String number;
 }

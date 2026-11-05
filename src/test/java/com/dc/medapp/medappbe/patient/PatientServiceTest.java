@@ -73,6 +73,8 @@ public class PatientServiceTest {
     private AvailabilitySlotRepository availabilitySlotRepository;
     @Autowired
     private MedicalReportService medicalReportService;
+    @Autowired
+    private BillingService billingService;
 
     @BeforeEach
     void setUp() throws Exception {
@@ -232,7 +234,8 @@ public class PatientServiceTest {
 
     private AppointmentEntity invoicedAppointment(int daysFromNow) {
         var appointment = appointmentService.createAppointment(patient.getId(), slot(daysFromNow).getId());
-        appointmentService.completeVisit(appointment.getId(), doc.getId());
+        var done = appointmentService.completeVisit(appointment.getId(), doc.getId());
+        billingService.issueInvoiceItem(done);
         medicalReportService.createReport(doc.getUser(), appointment.getId(), "Nessun risultato.", null);
         return appointment;
     }

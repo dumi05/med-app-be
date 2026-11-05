@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.time.ZoneId;
 
 @Service
 @RequiredArgsConstructor
@@ -23,7 +24,7 @@ public class BillingService {
     @Transactional
     @Audited(action = "ISSUE_INVOICE", entity = "InvoiceItem")
     public InvoiceItemEntity issueInvoiceItem(AppointmentEntity appointment) {
-        if(appointment.getStatus() != AppointmentStatus.REPORTED) {
+        if(appointment.getStatus() != AppointmentStatus.COMPLETED) {
             throw new InvalidStateTransitionException("Impossibile fatturare un appuntamento in stato " + appointment.getStatus());
         }
 
@@ -34,10 +35,17 @@ public class BillingService {
                                                 .appointment(appointment)
                                                 .amount(price.getPrice())
                                                 .issuedAt(Instant.now())
+                                                .paidAt(Instant.now())
                                                 .build());
+
+        item.setNumber(numberOf(item));
 
         appointment.setStatus(AppointmentStatus.INVOICED);
         appointment.setInvoicedAt(Instant.now());
         return item;
+    }
+
+    public static String numberOf(InvoiceItemEntity item){
+        return String.format("FT-%d-%05d", item.getIssuedAt().atZone(ZoneId.systemDefault()).getYear(), item.getId());
     }
 }
