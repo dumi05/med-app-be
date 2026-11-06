@@ -244,6 +244,28 @@ public class MedicalReportAttachmentServiceTest {
         assertThat(lines).allSatisfy(line -> assertThat(line.getEntityId()).isEqualTo(report.getId()));
     }
 
+    @Test
+    void createReport_withAWordDocument_storesItAndNamesItDocx() throws IOException {
+        var report = reportService.createReport(doctor.getUser(), completed.getId(), "Nessun risultato.", TestFiles.docx());
+
+        assertThat(report.getAttachmentContentType()).isEqualTo("application/vnd.openxmlformats-officedocument.wordprocessingml.document");
+        assertThat(report.getAttachmentSize()).isEqualTo(TestFiles.docxBytes().length);
+        var download = reportService.downloadOf(report);
+        assertThat(download.filename()).isEqualTo("referto-" + report.getId() + ".docx");
+        assertThat(download.resource().getInputStream().readAllBytes()).isEqualTo(TestFiles.docxBytes());
+    }
+
+    @Test
+    void createReport_refusesAZipThatIsNotAWordDocument_andKeepsNothing() {
+        for (var file : new org.springframework.mock.web.MockMultipartFile[]{TestFiles.spreadsheetCalledDocx(), TestFiles.docxWithMacros(), TestFiles.brokenZipCalledDocx()}) {
+            assertThrows(IllegalArgumentException.class,
+                    () -> reportService.createReport(doctor.getUser(), completed.getId(), "Nessun risultato.", file));
+        }
+
+        assertThat(reportRepository.findByAppointmentId(completed.getId())).isEmpty();
+        assertThat(filesOnTheDisk()).isEqualTo(filesBefore);
+    }
+
     // ---- helpers --------------------------------------------------------------------------------
 
     private long filesOnTheDisk() {

@@ -104,7 +104,15 @@ public class MedicalReportService {
         } catch (IOException e) {
             throw new UncheckedIOException("Cannot read the uploaded file.", e);
         }
-        return AttachmentType.detect(head).orElseThrow(() -> new IllegalArgumentException("Sono ammessi solo file PDF, JPEG, PNG."));
+        var type = AttachmentType.detect(head).orElseThrow(() -> new IllegalArgumentException("Sono ammessi solo file PDF, Word (.docx), JPEG, PNG."));
+        if (type == AttachmentType.DOCX) {
+            try (var content = file.getInputStream()) {
+                DocxInspector.requireWordDocument(content);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Cannot read the uploaded file.", e);
+            }
+        }
+        return type;
     }
 
     private String store(MultipartFile file){

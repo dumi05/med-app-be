@@ -10,7 +10,8 @@ import java.util.Optional;
 public enum AttachmentType {
     PDF("application/pdf", "pdf", new int[]{0x25, 0x50, 0x44, 0x46, 0x2D}),
     JPEG("image/jpeg", "jpg", new int[]{0xFF, 0xD8, 0xFF}),
-    PNG("image/png", "png", new int[]{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A});
+    PNG("image/png", "png", new int[]{0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A}),
+    DOCX("application/vnd.openxmlformats-officedocument.wordprocessingml.document", "docx", new int[]{0x50,0x4B,0x03,0x04});
 
     public static final int HEAD_SIZE = 8;
 

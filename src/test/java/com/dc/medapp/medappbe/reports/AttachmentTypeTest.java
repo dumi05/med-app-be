@@ -57,4 +57,15 @@ public class AttachmentTypeTest {
         assertThat(AttachmentType.PNG.getContentType()).isEqualTo("image/png");
         assertThat(AttachmentType.fromContentType("text/html")).isEmpty();
     }
+
+    @Test
+    void detect_recognizeAZip_asAPossibleWordDocument(){
+        assertThat(AttachmentType.detect(head(TestFiles.docxBytes()))).contains(AttachmentType.DOCX);
+    }
+
+    @Test
+    void theWordDocument_hasItsTypeAndItsExtension() {
+        assertThat(AttachmentType.DOCX.getExtension()).isEqualTo("docx");
+        assertThat(AttachmentType.fromContentType("application/vnd.openxmlformats-officedocument.wordprocessingml.document")).contains(AttachmentType.DOCX);
+    }
 }

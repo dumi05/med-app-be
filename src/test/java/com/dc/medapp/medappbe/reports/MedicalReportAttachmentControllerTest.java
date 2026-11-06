@@ -222,4 +222,31 @@ public class MedicalReportAttachmentControllerTest {
                 .andExpect(jsonPath("$.attachment.contentType").value("application/pdf"))
                 .andExpect(jsonPath("$.attachment.sizeBytes").value(TestFiles.pdfBytes().length));
     }
+
+    @Test
+    void aWordDocument_isUploaded_andDownloadedAsAnAttachment_neverShownInTheBrowser() throws Exception {
+        var json = api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, "Nessun risultato."), TestFiles.docx())
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.attachment.contentType").value("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .andReturn().getResponse().getContentAsString();
+        var reportId = objectMapper.readTree(json).get("id").asLong();
+
+        var body = api.getAs(patientToken, "/api/v1/medical-reports/" + reportId + "/attachment")
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("referto-" + reportId + ".docx")))
+                .andExpect(header().string("X-Content-Type-Options", "nosniff"))
+                .andReturn().getResponse().getContentAsByteArray();
+        assertThat(body).isEqualTo(TestFiles.docxBytes());
+    }
+
+    @Test
+    void aSpreadsheetCalledDocx_aWordDocumentWithMacros_andABrokenZip_return400() throws Exception {
+        for (var file : new org.springframework.mock.web.MockMultipartFile[]{TestFiles.spreadsheetCalledDocx(), TestFiles.docxWithMacros(), TestFiles.brokenZipCalledDocx()}) {
+            api.postReport(doctorToken, new CreateMedicalReportRequest(appointmentId, "Nessun risultato."), file)
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.code").value("INVALID_ARGUMENT"));
+        }
+    }
 }

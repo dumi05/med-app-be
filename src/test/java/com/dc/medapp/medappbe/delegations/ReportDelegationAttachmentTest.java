@@ -240,6 +240,19 @@ public class ReportDelegationAttachmentTest {
                 .andExpect(jsonPath("$[?(@.action == 'ACCESS_ATTACHMENT_VIA_DELEGATION' && @.outcome == 'FAILURE')]").isNotEmpty());
     }
 
+    @Test
+    void whoHoldsTheToken_downloadsAWordDocumentAsAnAttachment() throws Exception {
+        var wordReport = writeReport(patientToken, TestFiles.docx());
+        var token = delegationToken(true);
+
+        mockMvc.perform(get(attachmentPath(token, wordReport)).header(ApiTestClient.DELEGATION_ACCESS_HEADER, access(token)))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Content-Type", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+                .andExpect(header().string("Content-Disposition", containsString("attachment")))
+                .andExpect(header().string("Content-Disposition", containsString("referto-" + wordReport + ".docx")))
+                .andExpect(content().bytes(TestFiles.docxBytes()));
+    }
+
     private String access(String token) {
         return accessTokens.getOrDefault(token, "");
     }

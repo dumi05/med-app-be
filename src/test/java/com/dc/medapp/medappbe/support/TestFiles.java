@@ -48,4 +48,59 @@ public final class TestFiles {
         System.arraycopy(pdfBytes(), 0, bytes, 0, 5);
         return new MockMultipartFile("file", "enorme.pdf", "application/pdf", bytes);
     }
+
+    public static byte[] docxBytes() {
+        return zip("[Content_Types].xml","<Types/>","word/document.xml", "<document/>");
+    }
+
+    public static MockMultipartFile docx(){
+        return new MockMultipartFile("file","il mio referto.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document", docxBytes());
+    }
+
+    public static MockMultipartFile docxWithMacros(){
+        return new MockMultipartFile("file","con-macro.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                zip("[Content_Types].xml", "<Types/>", "word/document.xml", "<document/>", "word/vbaProject.bin","macro"));
+    }
+
+    public static MockMultipartFile spreadsheetCalledDocx() {
+        return new MockMultipartFile("file", "tabella.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                zip("[Content_Types].xml", "<Types/>", "xl/workbook.xml", "<workbook/>"));
+    }
+
+    public static MockMultipartFile brokenZipCalledDocx() {
+        return new MockMultipartFile("file", "rotto.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                new byte[]{'P', 'K', 3, 4, 'n', 'o', 't', ' ', 'a', ' ', 'z', 'i', 'p'});
+    }
+
+    public static byte[] zip(String... namesAndContents) {
+        var out = new java.io.ByteArrayOutputStream();
+        try (var zip = new java.util.zip.ZipOutputStream(out)) {
+            for (int i = 0; i < namesAndContents.length; i += 2) {
+                zip.putNextEntry(new java.util.zip.ZipEntry(namesAndContents[i]));
+                zip.write(namesAndContents[i + 1].getBytes(StandardCharsets.UTF_8));
+                zip.closeEntry();
+            }
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        return out.toByteArray();
+    }
+
+    public static byte[] docxThatIsHugeOnceOpened(int megabytes) {
+        var out = new java.io.ByteArrayOutputStream();
+        try (var zip = new java.util.zip.ZipOutputStream(out)) {
+            zip.putNextEntry(new java.util.zip.ZipEntry("[Content_Types].xml"));
+            zip.write("<Types/>".getBytes(StandardCharsets.UTF_8));
+            zip.closeEntry();
+            zip.putNextEntry(new java.util.zip.ZipEntry("word/document.xml"));
+            var megabyte = new byte[1024 * 1024];
+            for (int i = 0; i < megabytes; i++) {
+                zip.write(megabyte);
+            }
+            zip.closeEntry();
+        } catch (java.io.IOException e) {
+            throw new java.io.UncheckedIOException(e);
+        }
+        return out.toByteArray();
+    }
 }
