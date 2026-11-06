@@ -31,11 +31,12 @@ public class BillingService {
         var specializationId = appointment.getSlot().getDoctor().getSpecialization().getId();
         var price = priceListRepository.findBySpecializationIdAndVisitType(specializationId, STANDARD_VISIT_TYPE)
                 .orElseThrow(() -> new ResourceNotFoundException("Nessun prezzo di listino per la specializzazione: " + specializationId));
+        var now = Instant.now();
         var item = invoiceItemRepository.save(InvoiceItemEntity.builder()
                                                 .appointment(appointment)
                                                 .amount(price.getPrice())
-                                                .issuedAt(Instant.now())
-                                                .paidAt(Instant.now())
+                                                .issuedAt(now)
+                                                .paidAt(now)
                                                 .build());
 
         item.setNumber(numberOf(item));
