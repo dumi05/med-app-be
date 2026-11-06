@@ -1,10 +1,12 @@
 package com.dc.medapp.medappbe.patient;
 
 import com.dc.medapp.medappbe.auth.UserEntity;
+import com.dc.medapp.medappbe.patient.dto.PatientAdminResponse;
 import com.dc.medapp.medappbe.patient.dto.PatientDataExportResponse;
 import com.dc.medapp.medappbe.patient.dto.PatientSearchResponse;
 import com.dc.medapp.medappbe.security.ProfileResolver;
 import lombok.RequiredArgsConstructor;
+import org.apache.coyote.Response;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -44,5 +46,19 @@ public class PatientController {
     public ResponseEntity<Void> anonymize(@PathVariable Long id) {
         patientService.anonymize(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<PatientAdminResponse>> getAll() {
+        return ResponseEntity.ok(
+                patientService.findAllForAdmin().stream().map(PatientAdminResponse::fromEntity).toList()
+        );
+    }
+
+    @PostMapping("/{id}/force-password-change")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<PatientAdminResponse> forceChangePassword(@PathVariable Long id){
+        return ResponseEntity.ok(PatientAdminResponse.fromEntity(patientService.forcePasswordChange(id)));
     }
 }

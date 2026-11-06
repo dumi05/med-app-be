@@ -35,6 +35,11 @@ public class UserEntity extends BaseEntity {
     @Column(name = "must_change_password", nullable = false, columnDefinition = "boolean default false")
     private boolean mustChangePassword = false;
 
+    public void requirePasswordChange(){
+        this.mustChangePassword = true;
+        this.tokenVersion++;
+    }
+
     @PrePersist
     protected void onCreate() {
         this.createdAt = Instant.now();

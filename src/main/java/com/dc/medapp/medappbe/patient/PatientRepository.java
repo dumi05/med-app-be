@@ -22,4 +22,6 @@ public interface PatientRepository extends JpaRepository<PatientEntity, Long> {
             order by p.lastName, p.firstName, p.id
             """)
     List<PatientEntity> searchByText(@Param("text") String text, Pageable pageable);
+
+    List<PatientEntity> findByAnonymizedFalseOrderByLastNameAscFirstNameAsc();
 }

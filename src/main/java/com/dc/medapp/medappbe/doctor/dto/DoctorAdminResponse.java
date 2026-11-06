@@ -9,7 +9,8 @@ public record DoctorAdminResponse(Long id,
                                   Long specializationId,
                                   String specialization,
                                   boolean delegationConsent,
-                                  boolean active) {
+                                  boolean active,
+                                  boolean mustChangePassword) {
     public static DoctorAdminResponse fromEntity(DoctorEntity doctor) {
         return new DoctorAdminResponse(
                 doctor.getId(),
@@ -19,7 +20,8 @@ public record DoctorAdminResponse(Long id,
                 doctor.getSpecialization().getId(),
                 doctor.getSpecialization().getName(),
                 doctor.isDelegationConsent(),
-                doctor.getUser().isEnabled()
+                doctor.getUser().isEnabled(),
+                doctor.getUser().isMustChangePassword()
         );
     }
 }

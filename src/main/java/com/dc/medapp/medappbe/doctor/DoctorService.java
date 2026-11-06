@@ -100,4 +100,12 @@ public class DoctorService {
         doctor.getUser().setEnabled(true);
         return doctor;
     }
+
+    @Transactional
+    @Audited(action = "FORCE_PASSWORD_CHANGE", entity = "Doctor", idArg = 0)
+    public DoctorEntity forcePasswordChange(Long id){
+        var doctor = this.getDoctorById(id);
+        doctor.getUser().requirePasswordChange();
+        return doctor;
+    }
 }

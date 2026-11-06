@@ -102,6 +102,22 @@ public class PatientService {
         return new PatientDataExportResponse(PatientProfileResponse.fromEntity(patient), appointments, reports);
     }
 
+    @Transactional(readOnly = true)
+    public List<PatientEntity> findAllForAdmin(){
+        return patientRepository.findByAnonymizedFalseOrderByLastNameAscFirstNameAsc();
+    }
+
+    @Transactional
+    @Audited(action = "FORCE_PASSWORD_CHANGE", entity = "Patient", idArg = 0)
+    public PatientEntity forcePasswordChange(Long patId) {
+        var patient = findOrThrow(patId);
+        if(patient.isAnonymized()){
+            throw new ResourceNotFoundException("Paziente " + patId + " non trovato.");
+        }
+        patient.getUser().requirePasswordChange();
+        return patient;
+    }
+
     private void cancelFutureAppointments(PatientEntity patient) {
         var now = LocalDateTime.now();
         appointmentService.findByPatient(patient.getId()).stream()

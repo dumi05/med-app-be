@@ -69,4 +69,10 @@ public class DoctorController {
                 DoctorAdminResponse.fromEntity(doctorService.activate(id))
         );
     }
+
+    @PostMapping("/{id}/force-password-change")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<DoctorAdminResponse> forcePasswordChange(@PathVariable Long id){
+        return ResponseEntity.ok(DoctorAdminResponse.fromEntity(doctorService.forcePasswordChange(id)));
+    }
 }
