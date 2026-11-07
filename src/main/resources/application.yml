@@ -23,6 +23,8 @@ jwt:
 
 app:
   admin-psw: ${ADMIN_PSW:admin123}
+  demo-data: ${DEMO_DATA:false}
+  demo-password: ${DEMO_PASSWORD:}
   storage:
     dir: ${STORAGE_DIR:./data/attachments}
   security:
