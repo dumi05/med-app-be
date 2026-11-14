@@ -15,7 +15,7 @@ public class NoShowRiskCalculator {
         var pastAppointments = appointmentRepository.findPastNotCancelledByPatientId(patientId, LocalDateTime.now());
 
         if(pastAppointments.isEmpty()){
-            return false;
+            return false; // new patient, no risk
         }
 
         long missed = pastAppointments.stream().filter(app -> app.getStatus() == AppointmentStatus.BOOKED).count();
